@@ -6,7 +6,7 @@ performs VAD in browser via [ricky0123/vad](https://github.com/ricky0123/vad) an
 
 ## Configuration
 
-TODO - Needs companion PR in ovos-dinkum-listener
+Hivemind master needs https://github.com/OpenVoiceOS/ovos-dinkum-listener/pull/75
 
 ```bash
 $ hivemind-core allow-msg "recognizer_loop:b64_audio"
