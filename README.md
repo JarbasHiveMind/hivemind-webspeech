@@ -2,7 +2,7 @@
 
 send speech from browser to hivemind
 
-performs VAD in browser via [ricky0123/vad](https://github.com/ricky0123/vad) and sends audio via [HivemindJS](https://github.com/JarbasHiveMind/HiveMind-js) for processing
+performs VAD in browser via [ricky0123/vad](https://www.vad.ricky0123.com/) and sends audio via [HivemindJS](https://github.com/JarbasHiveMind/HiveMind-js) for processing
 
 online demo [here](https://jarbashivemind.github.io/hivemind-webspeech)
 
