@@ -56,6 +56,7 @@ window.onConnect = () => {
 
     window.toggleVAD()
     getToggleButton().disabled = false
+    getToggleButton().classList.remove("is-loading")
 }
 
 async function main() {
@@ -85,7 +86,6 @@ async function main() {
     })
 
     window.myvad = myvad
-    getToggleButton().classList.remove("is-loading")
 
 
     window.toggleVAD = () => {
