@@ -12,7 +12,7 @@ NOTE: your browser will refuse to connect to a non-ssl websocket unless it's 127
 
 ## Configuration
 
-Hivemind master needs https://github.com/OpenVoiceOS/ovos-dinkum-listener/pull/75
+Hivemind master needs ovos-dinkum-listener >= 0.0.3a19
 
 ```bash
 $ hivemind-core allow-msg "recognizer_loop:b64_audio"
