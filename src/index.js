@@ -1,15 +1,51 @@
 // @ts-nocheck
 
+
 function getToggleButton() {
   return document.getElementById("toggleVAD")
 }
 
+
+const hivemind_connection = new JarbasHiveMind()
+
+hivemind_connection.onHiveConnected = function () {
+    window.alert("Connected to HiveMind!")
+};
+
+hivemind_connection.onMycroftSpeak = function (mycroft_message) {
+    let utterance = mycroft_message.data.utterance;
+    const speechList = document.getElementById("audio-list")
+    const entry = document.createElement("p")
+    entry.textContent = "HiveMind says: " + utterance
+    speechList.prepend(entry)
+}
+
+hivemind_connection.onHiveDisconnected = function () {
+    window.alert("Hivemind connection lost...")
+};
+
+window.hivemind_connection = hivemind_connection
+
+window.onConnect = () => {
+    console.log("connectin to HM")
+    let ip = document.getElementById("hmip").value
+    let port = document.getElementById("hmport").value
+    let key = document.getElementById("hmkey").value
+    let crypto_key = document.getElementById("hmcrypto").value
+    let user = "HivemindWebSpeechV0.1"
+    hivemind_connection.connect(ip, port, user, key, crypto_key);
+}
+
 async function main() {
+
   try {
+
     const myvad = await vad.MicVAD.new({
+
       onSpeechStart: () => {
         console.log("Speech start")
       },
+
       onSpeechEnd: (arr) => {
         console.log("Speech end")
         const wavBuffer = vad.utils.encodeWAV(arr)
@@ -18,12 +54,16 @@ async function main() {
         const el = addAudio(url)
         const speechList = document.getElementById("audio-list")
         speechList.prepend(el)
-        // TODO - send to hivemind here
+        // TODO - send audio to STT url and then send text to hivemind
+        const entry = document.createElement("p")
+        entry.textContent = "User says: " + "pretend this is a STT transcription"
+        speechList.prepend(entry)
       },
     })
 
     window.myvad = myvad
     getToggleButton().classList.remove("is-loading")
+
 
     window.toggleVAD = () => {
       console.log("ran toggle vad")

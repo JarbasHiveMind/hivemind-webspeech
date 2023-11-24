@@ -1,37 +1,76 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <title>HiveMind Speech WebClient</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
     />
+    <script src="https://jarbashivemind.github.io/HiveMind-js/static/js/asmcrypto.js"></script>
+    <script src="https://jarbashivemind.github.io/HiveMind-js/static/js/webcrypto-shim.js"></script>
+    <script src="https://jarbashivemind.github.io/HiveMind-js/static/js/hivemind.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.7/dist/bundle.min.js"></script>
     <script type="module" src="index.js"></script>
-  </head>
-  <body>
-    <section class="section">
-      <div class="container">
-        <h1 class="title">HiveMind Speech WebClient</h1>
+</head>
+<body>
+<section class="section">
+    <div class="container">
+
+        <h1>
+            HiveMind Speech WebClient<br>
+
+            <a href="https://github.com/JarbasHiveMind/">
+                <img src="https://github.com/JarbasHiveMind/HiveMind-assets/blob/master/logo/hivemind-128.png?raw=true"
+                     id="logo"></img>
+            </a>
+
+        </h1>
+
+        <br><br>
+
+        Select a OVOS STT Server to transcribe your speech
+        <form onsubmit="return false">
+            <input id="ovosstt" autocomplete="off" type="text" placeholder="https://stt.openvoiceos.org">
+        </form>
+
+        <br><br>
+        HiveMind Credentials
+        <br>
+        <form onsubmit="return false">
+            IP:
+            <input id="hmip" autocomplete="off" type="text" placeholder="0.0.0.0"><br>
+            Port:
+            <input id="hmport" autocomplete="off" type="text" placeholder="5678"><br>
+            Access Key:
+            <input id="hmkey" autocomplete="off" type="text" placeholder="hivemind access key"><br>
+            Crypto Key:
+            <input id="hmcrypto" autocomplete="off" type="text" placeholder="hivemind crypto key"><br>
+            <button onclick="window.onConnect();" id="connect" >CONNECT </button>
+        </form>
+
+        <br><br>
+
+
+        <p>Just speak and HiveMind will answer</p>
 
         <div class="block is-inline-flex">
-          <button
-            id="toggleVAD"
-            class="button is-primary is-loading"
-            onclick="window.toggleVAD()"
-            disabled
-          >
-            Start VAD
-          </button>
+            <button
+                    id="toggleVAD"
+                    class="button is-primary is-loading"
+                    onclick="window.toggleVAD()"
+                    disabled
+            >
+                Start VAD
+            </button>
         </div>
 
         <div class="block">
-          <ul id="audio-list"></ul>
+            <ul id="audio-list"></ul>
         </div>
-      </div>
-    </section>
-  </body>
+    </div>
+</section>
+</body>
 </html>
