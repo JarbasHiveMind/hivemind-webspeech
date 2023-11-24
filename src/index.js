@@ -8,6 +8,24 @@ function getToggleButton() {
 
 const hivemind_connection = new JarbasHiveMind()
 
+
+hivemind_connection.sendAudioB64 = async function (base64) {
+     let payload = {
+        'type': "recognizer_loop:b64_audio",
+        "data": {"audio": base64},
+        "context": {
+            "source": "javascript",
+            "destination": "HiveMind",
+            "platform": "JarbasHivemindJsV0.1"
+        }
+    };
+    await hivemind_connection.sendMessage({
+        'msg_type': "bus",
+        "payload": payload
+    });
+
+}
+
 hivemind_connection.onHiveConnected = function () {
     window.alert("Connected to HiveMind!")
 };
@@ -24,6 +42,7 @@ hivemind_connection.onHiveDisconnected = function () {
     window.alert("Hivemind connection lost...")
 };
 
+
 window.hivemind_connection = hivemind_connection
 
 window.onConnect = () => {
@@ -34,6 +53,9 @@ window.onConnect = () => {
     let crypto_key = document.getElementById("hmcrypto").value
     let user = "HivemindWebSpeechV0.1"
     hivemind_connection.connect(ip, port, user, key, crypto_key);
+
+    window.toggleVAD()
+    getToggleButton().disabled = false
 }
 
 async function main() {
@@ -49,15 +71,16 @@ async function main() {
       onSpeechEnd: (arr) => {
         console.log("Speech end")
         const wavBuffer = vad.utils.encodeWAV(arr)
+        console.log(arr)
+        console.log(wavBuffer)
         const base64 = vad.utils.arrayBufferToBase64(wavBuffer)
         const url = `data:audio/wav;base64,${base64}`
         const el = addAudio(url)
         const speechList = document.getElementById("audio-list")
         speechList.prepend(el)
-        // TODO - send audio to STT url and then send text to hivemind
-        const entry = document.createElement("p")
-        entry.textContent = "User says: " + "pretend this is a STT transcription"
-        speechList.prepend(entry)
+
+        window.hivemind_connection.sendAudioB64(base64)
+
       },
     })
 
@@ -75,8 +98,6 @@ async function main() {
         getToggleButton().textContent = "Start VAD"
       }
     }
-    window.toggleVAD()
-    getToggleButton().disabled = false
   } catch (e) {
     console.error("Failed:", e)
   }
