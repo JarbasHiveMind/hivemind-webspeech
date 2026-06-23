@@ -11,12 +11,12 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # hivemind-js is not published to npm; the e2e drives the exact client the
       # page ships, so check it out and point HIVEMIND_JS_PATH at its hivemind.js.
       - name: Checkout HiveMind-js
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: JarbasHiveMind/HiveMind-js
           ref: dev
