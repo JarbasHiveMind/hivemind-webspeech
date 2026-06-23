@@ -13,6 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # hivemind-js is not published to npm; the e2e drives the exact client the
+      # page ships, so check it out and point HIVEMIND_JS_PATH at its hivemind.js.
+      - name: Checkout HiveMind-js
+        uses: actions/checkout@v4
+        with:
+          repository: JarbasHiveMind/HiveMind-js
+          ref: dev
+          path: hivemind-js-src
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -23,8 +32,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install JS deps (ws + hivemind-js)
-        run: npm ci
+      - name: Install JS deps (ws)
+        run: npm install --no-package-lock
 
       - name: Create the loopback-hub virtualenv
         run: |
@@ -39,4 +48,5 @@ jobs:
       - name: Run E2E (V1 client ↔ real loopback hub)
         env:
           E2E_PYTHON: /tmp/e2e-venv/bin/python
+          HIVEMIND_JS_PATH: ${{ github.workspace }}/hivemind-js-src/static/js/hivemind.js
         run: npm test
