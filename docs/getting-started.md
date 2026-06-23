@@ -20,8 +20,8 @@ Credentials are issued on the **hub** side. On the machine running HiveMind-core
 hivemind-core add-client
 ```
 
-It prints an **Access Key** and a **Password**. Copy both. In the browser form, the
-Password is entered in the field labelled **Crypto Key** — it is the same value.
+It prints an **Access Key** and a **Password**. Copy both — they go straight into the
+browser form's **Access Key** and **Password** fields.
 
 ---
 
@@ -68,7 +68,7 @@ Fill the form:
 | **IP** | The hub's address (e.g. `127.0.0.1` or `192.168.1.10`) |
 | **Port** | The hub WebSocket port (default `5678`) |
 | **Access Key** | From `hivemind-core add-client` |
-| **Crypto Key** | The Password from `hivemind-core add-client` |
+| **Password** | The Password from `hivemind-core add-client` |
 
 Click **CONNECT**. An alert confirms:
 
@@ -102,8 +102,9 @@ That's it — you are talking to your hive from the browser.
 
 ## What just happened
 
-1. The page connected to the hub over an encrypted WebSocket using your access key
-   and crypto key (via [HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js)).
+1. The page connected to the hub over a WebSocket and ran the V1 password handshake
+   to derive an AES-GCM session key from your access key and password (via
+   [HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js)).
 2. The browser ran VAD on your microphone and isolated one utterance.
 3. The utterance was encoded to WAV, base64-ed, and sent as a
    `recognizer_loop:b64_audio` bus message.

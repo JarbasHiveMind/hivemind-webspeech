@@ -15,10 +15,10 @@ The page presents four fields. They map directly to the
 | **IP** | `host` | `0.0.0.0` | The hub's address. `127.0.0.1` for same-machine, a LAN IP, or a hostname. |
 | **Port** | `port` | `5678` | The hub's WebSocket port. |
 | **Access Key** | `accessKey` | — | Issued by `hivemind-core add-client`. |
-| **Crypto Key** | `password` | — | The **Password** from `hivemind-core add-client`. Same value, different label. |
+| **Password** | `password` | — | The **Password** from `hivemind-core add-client`. The V1 client derives the AES-GCM session key from it during the handshake. |
 
 The client identifies itself to the hub with the fixed useragent
-`HivemindWebSpeechV0.1`.
+`HivemindWebSpeechV0.2`.
 
 ## Hub requirements
 

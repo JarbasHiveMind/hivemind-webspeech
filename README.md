@@ -7,9 +7,11 @@ microphone access, and speak.
 The browser captures your microphone, runs voice activity detection (VAD) locally to
 isolate spoken utterances, and streams each one as base64-encoded audio over an
 encrypted WebSocket to the hub using
-[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js). The hub does
-everything else — speech-to-text, intent matching, skills, and the spoken reply —
-and sends the answer back as text rendered on the page.
+[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js) — the **HiveMind
+Protocol V1** client: a password handshake (PBKDF2-HMAC-SHA256 key derivation) plus
+AES-GCM encryption, all over native Web Crypto with no extra crypto shims. The hub
+does everything else — speech-to-text, intent matching, skills, and the spoken
+reply — and sends the answer back as text rendered on the page.
 
 [Online demo](https://jarbashivemind.github.io/hivemind-webspeech)
 
@@ -74,7 +76,8 @@ hivemind-core add-client
 # → Access Key: <key>   Password: <password>
 ```
 
-The browser form labels the password the **Crypto Key**; it is the same value.
+The browser form's **Password** field is this password — the V1 client uses it to
+derive the AES-GCM session key during the handshake.
 
 ### 2. Allow audio messages on the hub
 
@@ -91,7 +94,7 @@ your own copy (see [Build](#build)).
 
 ### 4. Connect and speak
 
-1. Fill in **IP**, **Port** (default `5678`), **Access Key**, and **Crypto Key**.
+1. Fill in **IP**, **Port** (default `5678`), **Access Key**, and **Password**.
 2. Click **CONNECT**. An alert confirms `Connected to HiveMind!`.
 3. The VAD toggle activates. Click **Start VAD**, then just talk.
 4. Each detected utterance is sent to the hub; the spoken reply appears in the page
@@ -100,17 +103,41 @@ your own copy (see [Build](#build)).
 
 ## Build
 
-There is no Python package and no `package.json`. Runtime dependencies (HiveMind-js,
-`onnxruntime-web`, `@ricky0123/vad-web`, Bulma CSS) load from CDNs declared in
-`src/index.html`. The only build-time tool is `esbuild`, run via `npx`:
+Runtime dependencies (HiveMind-js, `onnxruntime-web`, `@ricky0123/vad-web`, Bulma
+CSS) load from CDNs declared in `src/index.html` — there is nothing to compile to
+run the page. The HiveMind-js V1 client is pulled from jsDelivr:
 
-```bash
-./build.sh
+```html
+<script src="https://cdn.jsdelivr.net/npm/hivemind-js@0.2.0/static/js/hivemind.js"></script>
 ```
 
-This bundles `src/*.js` into `dist/` and copies the HTML. Serve `dist/` (or `src/`)
-with any static web server. The hosted demo is published to the repo's `gh-pages`
-branch.
+Serve `src/` directly with any static web server, or produce a bundled `dist/` with
+`esbuild` (the only build-time tool, run via `npx`):
+
+```bash
+npm run build      # → ./build.sh: bundles src/*.js into dist/ and copies the HTML
+npm run serve      # static server on http://localhost:8000 (DIR=dist to serve a build)
+```
+
+The hosted demo is published to the repo's `gh-pages` branch.
+
+## Tests
+
+An end-to-end test drives the **same** HiveMind-js V1 client the page loads against a
+real loopback `hivemind-core` hub: it performs the full password handshake, sends an
+AES-GCM-encrypted utterance, and asserts the hub decrypted and received it.
+
+```bash
+npm ci
+npm test
+```
+
+The test (`tests/e2e.test.mjs`, Node's built-in runner) spawns a Python loopback hub
+(`tests/loopback_hub.py`, backed by
+[hivescope](https://github.com/JarbasHiveMind/hivescope)) and exercises the client
+over a real WebSocket via `ws`. It self-skips when no Python hub environment is
+available; point it at one with `E2E_PYTHON=/path/to/venv/bin/python`. CI provisions
+the hub automatically — see [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml).
 
 ## How it works
 

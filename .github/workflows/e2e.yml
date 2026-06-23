@@ -1,0 +1,42 @@
+name: E2E
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install JS deps (ws + hivemind-js)
+        run: npm ci
+
+      - name: Create the loopback-hub virtualenv
+        run: |
+          python -m venv /tmp/e2e-venv
+          /tmp/e2e-venv/bin/python -m pip install --upgrade pip
+          # hivescope provides the loopback hivemind-core hub the test drives.
+          # The loopback whitelist fix is not yet on a published release, so we
+          # install from the git branch carrying it.
+          /tmp/e2e-venv/bin/python -m pip install \
+            "hivescope @ git+https://github.com/JarbasHiveMind/hivescope.git@fix/loopback-whitelist-only-connection"
+
+      - name: Run E2E (V1 client ↔ real loopback hub)
+        env:
+          E2E_PYTHON: /tmp/e2e-venv/bin/python
+        run: npm test

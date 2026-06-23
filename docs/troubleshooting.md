@@ -22,8 +22,9 @@ See [Configuration → the TLS rule](configuration.md#the-tls--mixed-content-rul
 The WebSocket dropped after connecting. Check:
 
 - The hub is still running and reachable at the IP/port you entered.
-- The **Access Key** and **Crypto Key** are correct and the key has not been
-  revoked on the hub (`hivemind-core` client management).
+- The **Access Key** and **Password** are correct and the key has not been
+  revoked on the hub (`hivemind-core` client management). A wrong password fails the
+  V1 handshake, so the connection drops before any audio is sent.
 - Firewall/NAT between you and the hub.
 
 ### Connect succeeds but nothing happens when you speak
