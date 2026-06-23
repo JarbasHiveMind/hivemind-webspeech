@@ -42,7 +42,10 @@ jobs:
           # hivescope provides the loopback hivemind-core hub the test drives.
           # The loopback whitelist fix is not yet on a published release, so we
           # install from the git branch carrying it.
-          /tmp/e2e-venv/bin/python -m pip install \
+          # --pre: the HiveMind 2.x stack (hivemind-core 4.6.x / hivemind-bus-client
+          # 0.9.x on ovos-bus-client 2.x) is prerelease-only on PyPI; without it
+          # pip resolves old stable core and the hub's ACL/admission differs.
+          /tmp/e2e-venv/bin/python -m pip install --pre \
             "hivescope @ git+https://github.com/JarbasHiveMind/hivescope.git@fix/loopback-whitelist-only-connection"
 
       - name: Run E2E (V1 client ↔ real loopback hub)
