@@ -6,25 +6,11 @@ function getToggleButton() {
 }
 
 
+// HiveMind Protocol V1 client (hivemind-js >= 0.2.0). The handshake, AES-GCM
+// encryption, and the recognizer_loop:b64_audio bus message are all handled by
+// the client itself via the native sendAudioB64() convenience method.
 const hivemind_connection = new JarbasHiveMind()
 
-
-hivemind_connection.sendAudioB64 = async function (base64) {
-     let payload = {
-        'type': "recognizer_loop:b64_audio",
-        "data": {"audio": base64},
-        "context": {
-            "source": "javascript",
-            "destination": "HiveMind",
-            "platform": "JarbasHivemindJsV0.1"
-        }
-    };
-    await hivemind_connection.sendMessage({
-        'msg_type': "bus",
-        "payload": payload
-    });
-
-}
 
 hivemind_connection.onHiveConnected = function () {
     window.alert("Connected to HiveMind!")
@@ -46,13 +32,15 @@ hivemind_connection.onHiveDisconnected = function () {
 window.hivemind_connection = hivemind_connection
 
 window.onConnect = () => {
-    console.log("connectin to HM")
+    console.log("connecting to HiveMind")
     let ip = document.getElementById("hmip").value
     let port = document.getElementById("hmport").value
     let key = document.getElementById("hmkey").value
-    let crypto_key = document.getElementById("hmcrypto").value
-    let user = "HivemindWebSpeechV0.1"
-    hivemind_connection.connect(ip, port, user, key, crypto_key);
+    // V1: the password drives the PBKDF2-HMAC-SHA256 handshake + AES-GCM session
+    // key derivation. It replaces the V0 raw "crypto key".
+    let password = document.getElementById("hmpassword").value
+    let user = "HivemindWebSpeechV0.2"
+    hivemind_connection.connect(ip, port, user, key, password);
 
     window.toggleVAD()
     getToggleButton().disabled = false

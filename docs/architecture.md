@@ -23,12 +23,13 @@ meaning and a reply.
 
 ## Components
 
-The page (`src/index.html`) loads four runtime dependencies from CDNs:
+The page (`src/index.html`) loads its runtime dependencies from CDNs:
 
-- **[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js)** — the WebSocket
-  client. Handles the encrypted connection, authentication with the access key and
-  crypto key, and the HiveMind message envelope. The companion `asmcrypto.js` and
-  `webcrypto-shim.js` provide crypto primitives in older browsers.
+- **[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js)** — the HiveMind
+  Protocol V1 WebSocket client (loaded from jsDelivr). Handles authentication with
+  the access key, the password handshake (PBKDF2-HMAC-SHA256 key derivation), AES-GCM
+  encryption, and the HiveMind message envelope — all over native Web Crypto, so no
+  separate crypto shims are needed.
 - **`onnxruntime-web`** — runs the VAD neural model in the browser.
 - **`@ricky0123/vad-web`** — the VAD wrapper: microphone access, the Silero model,
   and `onSpeechStart` / `onSpeechEnd` callbacks, plus WAV/base64 utilities.
@@ -43,12 +44,13 @@ The page (`src/index.html`) loads four runtime dependencies from CDNs:
 When you click **CONNECT**, the page reads the four form fields and calls:
 
 ```js
-hivemind_connection.connect(ip, port, "HivemindWebSpeechV0.1", key, crypto_key)
+hivemind_connection.connect(ip, port, "HivemindWebSpeechV0.2", key, password)
 ```
 
-HiveMind-js opens an encrypted WebSocket to the hub and authenticates. On success,
-`onHiveConnected` fires (`Connected to HiveMind!`). A dropped connection fires
-`onHiveDisconnected` (`Hivemind connection lost...`).
+HiveMind-js opens the WebSocket, authenticates with the access key, then runs the V1
+password handshake to derive the AES-GCM session key before any payload is sent. On
+success, `onHiveConnected` fires (`Connected to HiveMind!`). A dropped connection
+fires `onHiveDisconnected` (`Hivemind connection lost...`).
 
 ### 2. Detect speech
 
@@ -89,15 +91,18 @@ envelope:
     context: {
       source: "javascript",
       destination: "HiveMind",
-      platform: "JarbasHivemindJsV0.1"
+      platform: "JarbasHivemindJsV0.2"
     }
   }
 }
 ```
 
-The hub must be configured to accept this message
-(`hivemind-core allow-msg "recognizer_loop:b64_audio"`) and run a listener new
-enough to decode it (`ovos-dinkum-listener >= 0.0.3a19`).
+This whole `bus` envelope is AES-GCM-encrypted by HiveMind-js (using the session key
+derived during the handshake) before it leaves the browser — what crosses the wire is
+ciphertext, not the JSON above. The convenience method `sendAudioB64(base64)` on the
+V1 client builds and encrypts this message for you. The hub must be configured to
+accept the decoded message (`hivemind-core allow-msg "recognizer_loop:b64_audio"`)
+and run a listener new enough to decode it (`ovos-dinkum-listener >= 0.0.3a19`).
 
 ### 5. Hub processing
 

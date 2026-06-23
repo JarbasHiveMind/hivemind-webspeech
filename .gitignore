@@ -1,0 +1,8 @@
+node_modules/
+dist/
+package-lock.json
+*.log
+
+# Local agent scratch notes (not part of the project)
+AGENTS.md
+TODO.md

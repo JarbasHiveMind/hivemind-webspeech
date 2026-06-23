@@ -1,0 +1,55 @@
+name: E2E
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # hivemind-js is not published to npm; the e2e drives the exact client the
+      # page ships, so check it out and point HIVEMIND_JS_PATH at its hivemind.js.
+      - name: Checkout HiveMind-js
+        uses: actions/checkout@v4
+        with:
+          repository: JarbasHiveMind/HiveMind-js
+          ref: dev
+          path: hivemind-js-src
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install JS deps (ws)
+        run: npm install --no-package-lock
+
+      - name: Create the loopback-hub virtualenv
+        run: |
+          python -m venv /tmp/e2e-venv
+          /tmp/e2e-venv/bin/python -m pip install --upgrade pip
+          # hivescope provides the loopback hivemind-core hub the test drives.
+          # The loopback whitelist fix is not yet on a published release, so we
+          # install from the git branch carrying it.
+          # --pre: the HiveMind 2.x stack (hivemind-core 4.6.x / hivemind-bus-client
+          # 0.9.x on ovos-bus-client 2.x) is prerelease-only on PyPI; without it
+          # pip resolves old stable core and the hub's ACL/admission differs.
+          /tmp/e2e-venv/bin/python -m pip install --pre \
+            "hivescope @ git+https://github.com/JarbasHiveMind/hivescope.git@fix/loopback-whitelist-only-connection"
+
+      - name: Run E2E (V1 client ↔ real loopback hub)
+        env:
+          E2E_PYTHON: /tmp/e2e-venv/bin/python
+          HIVEMIND_JS_PATH: ${{ github.workspace }}/hivemind-js-src/static/js/hivemind.js
+        run: npm test
