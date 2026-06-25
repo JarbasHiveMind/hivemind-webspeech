@@ -17,8 +17,9 @@ utterance end to end.
 Usage:
     loopback_hub.py <sat_key> <sat_password> <expected_utterance>
 
-Requires the hivemind-e2e venv (hivescope editable, with the loopback fix):
-    ~/.venvs/hivemind-e2e/bin/python tests/loopback_hub.py ...
+Requires a venv with hivescope (which floors the HiveMind 2.x stack):
+    python -m pip install "hivescope>=0.5.2a1"
+    /path/to/venv/bin/python tests/loopback_hub.py ...
 """
 import sys
 

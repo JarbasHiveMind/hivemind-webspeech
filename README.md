@@ -128,8 +128,16 @@ real loopback `hivemind-core` hub: it performs the full password handshake, send
 AES-GCM-encrypted utterance, and asserts the hub decrypted and received it.
 
 ```bash
-npm ci
-npm test
+# Node side: the `ws` WebSocket polyfill used to run the browser client headless.
+npm install
+
+# Python side: a venv with the loopback hub. hivescope floors the whole
+# HiveMind 2.x stack itself, so a plain min-pin pulls the right packages.
+python -m venv .venv
+.venv/bin/python -m pip install "hivescope>=0.5.2a1"
+
+# Run, pointing the test at that venv.
+E2E_PYTHON=.venv/bin/python npm test
 ```
 
 The test (`tests/e2e.test.mjs`, Node's built-in runner) spawns a Python loopback hub
