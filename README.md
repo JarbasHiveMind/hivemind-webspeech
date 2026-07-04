@@ -9,28 +9,37 @@ isolate spoken utterances, and streams each one as base64-encoded audio over an
 encrypted WebSocket to the hub using
 [HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js). The client negotiates
 the highest HiveMind protocol version both peers support (WIRE-1): against a
-**protocol v3** hub it runs the Noise handshake over the AES-GCM suite, and against
-older hubs it falls back to the legacy **v1** password handshake — a
-PBKDF2-HMAC-SHA256 key derivation plus AES-GCM encryption. Everything runs over
-native Web Crypto with no extra crypto shims. The hub does everything else —
+**protocol v3** hub it runs the Noise handshake over the default
+`Noise_XXpsk2_25519_ChaChaPoly_SHA256` suite — full cipher parity with
+hivemind-core — and against older hubs it falls back to the legacy **v1** password
+handshake (PBKDF2-HMAC-SHA256 key derivation plus AES-GCM encryption). It pairs
+native Web Crypto with the pure-JS `@noble/ciphers` + `@noble/hashes` bundle for the
+two primitives Web Crypto lacks (ChaCha20-Poly1305 and argon2id). The hub does everything else —
 speech-to-text, intent matching, skills, and the spoken reply — and sends the answer
 back as text rendered on the page.
 
-### Protocol v3 (Noise) and the argon2id limitation
+### Protocol v3 (Noise)
 
-Browsers use the AES-GCM Noise suite (`25519_AESGCM_SHA256`) — Web Crypto has no
-ChaChaPoly. A v3 hub advertises this suite (shipped in hivemind-bus-client 0.10.1a1 /
-hivemind-core 4.7.0a1), so a browser peer *can* negotiate v3. The catch is the PSK:
+Against a v3 hub (hivemind-bus-client 0.10.1a1 / hivemind-core 4.7.0a1 or newer) the
+browser negotiates the **default** `Noise_XXpsk2_25519_ChaChaPoly_SHA256` suite and
+derives the PSK as `argon2id(password, SHA-256(node_id))` **in-browser** — byte-for-byte
+identical to what hivemind-core computes. So the **Password** field alone is enough:
 
-- If the hub is configured with the **PBKDF2** PSK KDF, the **Password** field alone
-  is enough — the client derives the PSK in-browser.
-- Against the **default argon2id** hub, Web Crypto cannot compute argon2id, so paste a
-  **provisioned PSK** (64 hex chars, equal to `argon2id(password, SHA-256(node_id))`
-  computed on a capable host) into the *Protocol v3* section of the connect form. An
-  optional **server key pin** enables KKpsk0 TOFU pinning.
+- **Password (default):** type the client password from `hivemind-core add-client`.
+  Nothing else is required — no server-side KDF change, no provisioning. The client
+  runs ChaCha20-Poly1305 via `@noble/ciphers` and argon2id via `@noble/hashes`.
+- **Provisioned PSK (optional):** paste a 64-hex-char PSK (equal to
+  `argon2id(password, SHA-256(node_id))`) into the *Protocol v3* section of the connect
+  form to skip on-device derivation. An optional **server key pin** enables KKpsk0 TOFU
+  pinning.
+- **PBKDF2 (fallback):** if a hub explicitly advertises the PBKDF2 PSK KDF, the client
+  derives the PSK with PBKDF2 from the password instead.
 
-If no PSK is available for a v3 hub, the client logs a warning and falls back to the
-legacy v1 handshake, so the existing UX keeps working against every hub.
+The one caveat: a **minimal** page bundle shipped *without* the `@noble` primitives
+degrades to the Web-Crypto-only AES-GCM (`25519_AESGCM_SHA256`) + PBKDF2 subset, and
+then needs a provisioned PSK or a PBKDF2-advertising hub. If no PSK is available for a
+v3 hub at all, the client logs a warning and falls back to the legacy v1 handshake, so
+the existing UX keeps working against every hub.
 
 [Online demo](https://jarbashivemind.github.io/hivemind-webspeech)
 
@@ -95,10 +104,10 @@ hivemind-core add-client
 # → Access Key: <key>   Password: <password>
 ```
 
-The browser form's **Password** field is this password — the client uses it to
-derive the AES-GCM session key during the handshake (and, against a PBKDF2-KDF v3
-hub, the Noise PSK). See [Protocol v3](#protocol-v3-noise-and-the-argon2id-limitation)
-for the argon2id case.
+The browser form's **Password** field is this password — against a v3 hub the client
+stretches it with argon2id in-browser to the Noise PSK, and on the legacy path it
+derives the AES-GCM session key from it. See [Protocol v3](#protocol-v3-noise) for the
+details.
 
 ### 2. Allow audio messages on the hub
 

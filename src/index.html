@@ -44,11 +44,13 @@
                 <summary>Protocol v3 (Noise) — optional</summary>
                 <small>
                     The browser negotiates the highest protocol version both peers
-                    support. Against a v3 hub configured with the <b>PBKDF2</b> PSK
-                    KDF, the password above is enough. Against the default
-                    <b>argon2id</b> hub, Web Crypto cannot derive the PSK — paste a
-                    provisioned 64-hex-char PSK below. Leave blank for the legacy
-                    v1 handshake.
+                    support. Against a v3 hub it uses the default ChaCha20-Poly1305
+                    Noise suite and derives the PSK from the <b>password above</b>
+                    with argon2id in-browser — full parity with hivemind-core, so the
+                    password alone is enough, with no server-side configuration. These
+                    fields are optional: paste a provisioned 64-hex-char PSK to skip
+                    derivation, and/or a server key pin for TOFU pinning. Leave blank
+                    to use the password.
                 </small><br>
                 Provisioned PSK (64 hex chars):
                 <input id="hmpsk" autocomplete="off" type="text" placeholder="optional Noise PSK"><br>

@@ -38,15 +38,16 @@ window.onConnect = () => {
     let ip = document.getElementById("hmip").value
     let port = document.getElementById("hmport").value
     let key = document.getElementById("hmkey").value
-    // The password drives the legacy v1 PBKDF2-HMAC-SHA256 handshake + AES-GCM
-    // session key, and — against a v3 hub advertising the PBKDF2 PSK KDF — the
-    // Noise PSK too. Against the default argon2id v3 hub, Web Crypto has no
-    // argon2id, so a provisioned PSK must be supplied instead (see below).
+    // The password is all that is normally needed: against a v3 hub HiveMind-js
+    // derives the Noise PSK as argon2id(password, SHA-256(node_id)) in-browser via
+    // @noble and negotiates the default ChaChaPoly suite (full parity with
+    // hivemind-core); on the legacy v1 path it drives the PBKDF2-HMAC-SHA256
+    // handshake + AES-GCM session key.
     let password = document.getElementById("hmpassword").value
     let user = "HivemindWebSpeechV0.2"
 
     // Optional protocol-v3 (Noise) options. Empty fields leave the client on the
-    // password path (v3 via PBKDF2 KDF, or legacy v1 fallback).
+    // password path (argon2id PSK in-browser, or legacy v1 fallback).
     let options = {}
     let psk = (document.getElementById("hmpsk").value || "").trim()
     if (psk) options.psk = psk
