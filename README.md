@@ -7,11 +7,30 @@ microphone access, and speak.
 The browser captures your microphone, runs voice activity detection (VAD) locally to
 isolate spoken utterances, and streams each one as base64-encoded audio over an
 encrypted WebSocket to the hub using
-[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js) — the **HiveMind
-Protocol V1** client: a password handshake (PBKDF2-HMAC-SHA256 key derivation) plus
-AES-GCM encryption, all over native Web Crypto with no extra crypto shims. The hub
-does everything else — speech-to-text, intent matching, skills, and the spoken
-reply — and sends the answer back as text rendered on the page.
+[HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js). The client negotiates
+the highest HiveMind protocol version both peers support (WIRE-1): against a
+**protocol v3** hub it runs the Noise handshake over the AES-GCM suite, and against
+older hubs it falls back to the legacy **v1** password handshake — a
+PBKDF2-HMAC-SHA256 key derivation plus AES-GCM encryption. Everything runs over
+native Web Crypto with no extra crypto shims. The hub does everything else —
+speech-to-text, intent matching, skills, and the spoken reply — and sends the answer
+back as text rendered on the page.
+
+### Protocol v3 (Noise) and the argon2id limitation
+
+Browsers use the AES-GCM Noise suite (`25519_AESGCM_SHA256`) — Web Crypto has no
+ChaChaPoly. A v3 hub advertises this suite (shipped in hivemind-bus-client 0.10.1a1 /
+hivemind-core 4.7.0a1), so a browser peer *can* negotiate v3. The catch is the PSK:
+
+- If the hub is configured with the **PBKDF2** PSK KDF, the **Password** field alone
+  is enough — the client derives the PSK in-browser.
+- Against the **default argon2id** hub, Web Crypto cannot compute argon2id, so paste a
+  **provisioned PSK** (64 hex chars, equal to `argon2id(password, SHA-256(node_id))`
+  computed on a capable host) into the *Protocol v3* section of the connect form. An
+  optional **server key pin** enables KKpsk0 TOFU pinning.
+
+If no PSK is available for a v3 hub, the client logs a warning and falls back to the
+legacy v1 handshake, so the existing UX keeps working against every hub.
 
 [Online demo](https://jarbashivemind.github.io/hivemind-webspeech)
 
@@ -76,8 +95,10 @@ hivemind-core add-client
 # → Access Key: <key>   Password: <password>
 ```
 
-The browser form's **Password** field is this password — the V1 client uses it to
-derive the AES-GCM session key during the handshake.
+The browser form's **Password** field is this password — the client uses it to
+derive the AES-GCM session key during the handshake (and, against a PBKDF2-KDF v3
+hub, the Noise PSK). See [Protocol v3](#protocol-v3-noise-and-the-argon2id-limitation)
+for the argon2id case.
 
 ### 2. Allow audio messages on the hub
 
@@ -105,10 +126,11 @@ your own copy (see [Build](#build)).
 
 Runtime dependencies (HiveMind-js, `onnxruntime-web`, `@ricky0123/vad-web`, Bulma
 CSS) load from CDNs declared in `src/index.html` — there is nothing to compile to
-run the page. The HiveMind-js V1 client is pulled from jsDelivr:
+run the page. The HiveMind-js client is pulled from jsDelivr, tracking the `dev`
+branch so the page always loads the current protocol-v3 client:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hivemind-js@0.2.0/static/js/hivemind.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js"></script>
 ```
 
 Serve `src/` directly with any static web server, or produce a bundled `dist/` with
@@ -123,9 +145,14 @@ The hosted demo is published to the repo's `gh-pages` branch.
 
 ## Tests
 
-An end-to-end test drives the **same** HiveMind-js V1 client the page loads against a
-real loopback `hivemind-core` hub: it performs the full password handshake, sends an
-AES-GCM-encrypted utterance, and asserts the hub decrypted and received it.
+An end-to-end test drives the **same** HiveMind-js client the page loads against a
+real loopback `hivemind-core` hub: it performs the full handshake, sends an
+AES-GCM-encrypted utterance, and asserts the hub decrypted and received it. A second
+test exercises the browser client's protocol-v3 negotiation path directly (see
+`tests/v3_negotiation.test.mjs`): it feeds the client a synthetic v3 ServerHello and
+asserts it selects the AES-GCM Noise suite and derives a valid PSK from the password
+via the PBKDF2 KDF. (The loopback hub floors an older stack that predates the v3
+suite, so full v3-over-the-wire is not yet exercised end to end.)
 
 ```bash
 # Node side: the `ws` WebSocket polyfill used to run the browser client headless.

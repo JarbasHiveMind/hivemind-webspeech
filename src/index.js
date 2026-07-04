@@ -6,9 +6,11 @@ function getToggleButton() {
 }
 
 
-// HiveMind Protocol V1 client (hivemind-js >= 0.2.0). The handshake, AES-GCM
+// HiveMind-js client (hivemind-js dev, protocol v0-v3). The handshake, AES-GCM
 // encryption, and the recognizer_loop:b64_audio bus message are all handled by
-// the client itself via the native sendAudioB64() convenience method.
+// the client itself via the native sendAudioB64() convenience method. The
+// client negotiates the highest protocol version both peers support (WIRE-1),
+// falling back to the legacy v1 password handshake against older hubs.
 const hivemind_connection = new JarbasHiveMind()
 
 
@@ -36,11 +38,22 @@ window.onConnect = () => {
     let ip = document.getElementById("hmip").value
     let port = document.getElementById("hmport").value
     let key = document.getElementById("hmkey").value
-    // V1: the password drives the PBKDF2-HMAC-SHA256 handshake + AES-GCM session
-    // key derivation. It replaces the V0 raw "crypto key".
+    // The password drives the legacy v1 PBKDF2-HMAC-SHA256 handshake + AES-GCM
+    // session key, and — against a v3 hub advertising the PBKDF2 PSK KDF — the
+    // Noise PSK too. Against the default argon2id v3 hub, Web Crypto has no
+    // argon2id, so a provisioned PSK must be supplied instead (see below).
     let password = document.getElementById("hmpassword").value
     let user = "HivemindWebSpeechV0.2"
-    hivemind_connection.connect(ip, port, user, key, password);
+
+    // Optional protocol-v3 (Noise) options. Empty fields leave the client on the
+    // password path (v3 via PBKDF2 KDF, or legacy v1 fallback).
+    let options = {}
+    let psk = (document.getElementById("hmpsk").value || "").trim()
+    if (psk) options.psk = psk
+    let serverKey = (document.getElementById("hmserverkey").value || "").trim()
+    if (serverKey) options.serverNoiseKey = serverKey
+
+    hivemind_connection.connect(ip, port, user, key, password, options);
 
     window.toggleVAD()
     getToggleButton().disabled = false

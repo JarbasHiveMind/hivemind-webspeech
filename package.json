@@ -1,7 +1,7 @@
 {
   "name": "hivemind-webspeech",
   "version": "0.2.0",
-  "description": "Browser WebSpeech frontend for HiveMind — captures the microphone, runs VAD locally, and streams utterances to a HiveMind hub over the encrypted Protocol V1 (hivemind-js) WebSocket.",
+  "description": "Browser WebSpeech frontend for HiveMind — captures the microphone, runs VAD locally, and streams utterances to a HiveMind hub over an encrypted (hivemind-js) WebSocket, negotiating protocol v3 (Noise/AES-GCM) with legacy v1 fallback.",
   "license": "Apache-2.0",
   "author": "JarbasAi <jarbasai@mailfence.com>",
   "homepage": "https://github.com/JarbasHiveMind/hivemind-webspeech#readme",
@@ -21,7 +21,8 @@
     "vad",
     "browser",
     "websocket",
-    "protocol-v1"
+    "noise-protocol",
+    "protocol-v3"
   ],
   "private": true,
   "type": "module",
