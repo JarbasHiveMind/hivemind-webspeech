@@ -63,6 +63,47 @@
 
         <br><br>
 
+        <details>
+            <summary>Settings — wake word, transport, TTS</summary>
+            <small>
+                Three independent options, saved in your browser. Each defaults to
+                the original behaviour, so leaving them untouched changes nothing.
+            </small>
+            <br><br>
+            <form onsubmit="return false">
+                Wake word:
+                <select id="cfgWakeWord">
+                    <option value="off">off — stream every utterance (VAD / push-to-talk)</option>
+                    <option value="precise-onnx-js">precise-onnx-js — gate capture behind an in-browser wake word</option>
+                </select>
+                <br>
+                Wake-word model URL:
+                <input id="cfgPreciseModel" autocomplete="off" type="text" size="60"
+                       placeholder="Precise .onnx model URL"><br>
+
+                Audio transport:
+                <select id="cfgTransport">
+                    <option value="base64">base64 — recognizer_loop:b64_audio bus message</option>
+                    <option value="binary">binary — WIRE-1 raw-PCM audio frames (smaller)</option>
+                </select>
+                <br>
+
+                Text to speech:
+                <select id="cfgTts">
+                    <option value="server-text">server-text — show the reply as text</option>
+                    <option value="phoonnx-js">phoonnx-js — synthesize the reply in-browser and play it</option>
+                </select>
+                <br>
+                phoonnx voice id:
+                <input id="cfgPhoonnxVoice" autocomplete="off" type="text" size="40"
+                       placeholder="phoonnx voice id"><br>
+
+                <button onclick="window.onSaveSettings();" id="saveSettings">SAVE SETTINGS</button>
+            </form>
+        </details>
+
+        <br>
+
 
         <p>Just speak and HiveMind will answer</p>
 

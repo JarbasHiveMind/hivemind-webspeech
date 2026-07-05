@@ -58,7 +58,7 @@ page does microphone capture and VAD, and hivemind-core does the rest.
 | Client | Runs locally | Runs on hivemind-core |
 |---|---|---|
 | [HiveMind-cli](https://github.com/JarbasHiveMind/HiveMind-cli) | nothing (text only) | STT · TTS · intent · skills |
-| **hivemind-webspeech** (this, in-browser) | microphone · VAD | STT · TTS · intent · skills |
+| **hivemind-webspeech** (this, in-browser) | microphone · VAD · (optional wake-word · TTS) | STT · intent · skills · (TTS) |
 | [hivemind-mic-satellite](https://github.com/JarbasHiveMind/hivemind-mic-satellite) | microphone · VAD | STT · TTS · intent · skills |
 | [HiveMind-voice-relay](https://github.com/JarbasHiveMind/HiveMind-voice-relay) | mic · VAD · wake-word | STT · TTS · intent · skills |
 | [HiveMind-voice-sat](https://github.com/JarbasHiveMind/HiveMind-voice-sat) | mic · VAD · wake-word · STT · TTS | intent · skills |
@@ -70,12 +70,32 @@ difference is the runtime — a web page instead of a Python process — and the
 transport library ([HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js)
 instead of
 [hivemind-websocket-client](https://github.com/JarbasHiveMind/hivemind-websocket-client)).
-There is no wake-word: speech detection is push-to-talk style, gated by the VAD
-toggle button.
+By default speech detection is push-to-talk style, gated by the VAD toggle
+button, and hivemind-core does all speech work. The [Settings](#client-side-options)
+panel can optionally move a wake word and text-to-speech into the browser.
 
-STT, TTS, intent matching, and skills all live on hivemind-core and are owned by the hive
+STT, intent matching, and skills always live on hivemind-core and are owned by the
 operator behind access-key authentication — the browser cannot choose the speech
-engine, it only ships audio.
+engine, it only ships audio (and, optionally, speaks the reply locally).
+
+## Client-side options
+
+Three independent options in the page's **Settings** panel control where work
+happens. Each is saved in the browser and **defaults to the base behaviour**, so
+an untouched page acts exactly as the minimal client — nothing regresses.
+
+| Option | Default | Alternative | What the alternative does |
+|---|---|---|---|
+| **Wake word** | `off` | `precise-onnx-js` | Runs a [Precise](https://github.com/MycroftAI/mycroft-precise) `.onnx` wake word in the browser via [precise-onnx-js](https://github.com/TigreGotico/precise-onnx-js) and gates capture — audio is streamed only after the wake word fires. |
+| **Audio transport** | `base64` | `binary` | Sends each utterance as a WIRE-1 `STT_AUDIO_HANDLE` raw-PCM binary frame instead of a base64 WAV bus message — smaller and faster on the wire. Falls back to `base64` automatically when the session cannot carry binary frames. |
+| **Text to speech** | `server-text` | `phoonnx-js` | Synthesizes the spoken reply in the browser with [phoonnx.js](https://github.com/TigreGotico/phoonnx.js) and plays it, in addition to showing the text. A voice selector picks the model. |
+
+The wake-word and TTS libraries are fetched only when their option is enabled, so
+the default page loads nothing extra. The wake-word model is referenced by URL (a
+hosted `hey_mycroft` model by default — no weights are committed here) and the
+phoonnx voice by id. See [docs/configuration.md](docs/configuration.md#settings-panel)
+for the full option reference, model/voice hosting, and the transport and
+build notes.
 
 ## Prerequisites
 
@@ -197,7 +217,12 @@ hivemind-core automatically — see [`.github/workflows/e2e.yml`](.github/workfl
 4. The base64 audio is wrapped in a `recognizer_loop:b64_audio` bus message and sent
    to hivemind-core.
 5. hivemind-core runs STT → intent → skill → TTS and replies; the client renders the
-   spoken text from the `speak` message it receives.
+   spoken text from the `speak` message it receives, and — with the `phoonnx-js`
+   TTS option — also synthesizes and plays that text in the browser.
+
+The [Settings](#client-side-options) panel can move the wake word into the
+browser (step 2 gates capture behind it) and switch step 4 to raw-PCM binary
+frames.
 
 See [`docs/`](docs/index.md) for the full setup walkthrough, configuration
 reference, the audio pipeline, and troubleshooting.

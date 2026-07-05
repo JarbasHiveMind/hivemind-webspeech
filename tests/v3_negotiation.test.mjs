@@ -42,6 +42,13 @@ function resolveHivemindJs() {
 const hm = require(resolveHivemindJs());
 const { JarbasHiveMind, selectNoiseOptions, derivePskPBKDF2, NOISE_SUITES_JS } = hm;
 
+// The client advertises ChaCha20-Poly1305 only when its @noble backend is
+// present; a minimal Web-Crypto-only bundle is AES-GCM only. These assertions
+// adapt to whichever suites the loaded client can actually run.
+const CHACHA = '25519_ChaChaPoly_SHA256';
+const AESGCM = '25519_AESGCM_SHA256';
+const CAN_CHACHA = NOISE_SUITES_JS.indexOf(CHACHA) !== -1;
+
 const NODE_ID = 'HiveMind-Node';
 const PASSWORD = 'super secret hive password';
 
@@ -59,20 +66,30 @@ function pbkdf2Hello() {
     };
 }
 
-test('selectNoiseOptions picks the AES-GCM suite the browser can run', () => {
+test('selectNoiseOptions picks the client-preferred suite both peers support', () => {
     const sel = selectNoiseOptions(
         ['XXpsk2', 'KKpsk0'],
-        ['25519_ChaChaPoly_SHA256', '25519_AESGCM_SHA256'],
+        [CHACHA, AESGCM],
         null);
     assert.ok(sel, 'a mutual pattern/suite must be selected');
-    assert.equal(sel.suite, '25519_AESGCM_SHA256');
+    // The client walks its own preference order, so the winner is the first
+    // entry of NOISE_SUITES_JS the server also offers.
+    assert.equal(sel.suite, NOISE_SUITES_JS[0]);
     assert.equal(sel.pattern, 'XXpsk2');
-    assert.deepEqual(NOISE_SUITES_JS, ['25519_AESGCM_SHA256']);
+    // AES-GCM is always runnable in a browser (Web Crypto); it must be offered.
+    assert.ok(NOISE_SUITES_JS.indexOf(AESGCM) !== -1);
 });
 
-test('selectNoiseOptions declines a ChaChaPoly-only server', () => {
-    const sel = selectNoiseOptions(['XXpsk2'], ['25519_ChaChaPoly_SHA256'], null);
-    assert.equal(sel, null);
+test('selectNoiseOptions and a ChaChaPoly-only server', () => {
+    const sel = selectNoiseOptions(['XXpsk2'], [CHACHA], null);
+    if (CAN_CHACHA) {
+        // A ChaCha-capable client interoperates over the default suite.
+        assert.ok(sel);
+        assert.equal(sel.suite, CHACHA);
+    } else {
+        // A Web-Crypto-only client cannot run ChaCha -> legacy handshake.
+        assert.equal(sel, null);
+    }
 });
 
 test('password derives a valid v3 PSK against a PBKDF2-KDF hub', async () => {
@@ -90,16 +107,24 @@ test('password derives a valid v3 PSK against a PBKDF2-KDF hub', async () => {
     assert.deepEqual([...psk], [...expected]);
 });
 
-test('argon2id hub with no provisioned PSK falls back to legacy (null)', async () => {
+test('argon2id hub with no provisioned PSK derives (or declines) per client capability', async () => {
     const c = new JarbasHiveMind();
     c._maxProtocolVersion = 3;
     c._password = PASSWORD;
     c._serverNodeId = NODE_ID;
 
     const hello = pbkdf2Hello();
-    hello.noise.kdf = { name: 'argon2id' };   // Web Crypto cannot compute this
+    hello.noise.kdf = { name: 'argon2id' };   // the server default KDF
     const psk = await c._resolveNoisePsk(hello);
-    assert.equal(psk, null, 'must decline v3 and fall back to legacy');
+    if (CAN_CHACHA) {
+        // An @noble-backed client computes argon2id in-browser (full parity),
+        // so the password alone yields a valid 32-byte PSK.
+        assert.ok(psk instanceof Uint8Array);
+        assert.equal(psk.length, 32);
+    } else {
+        // A Web-Crypto-only client cannot compute argon2id -> legacy fallback.
+        assert.equal(psk, null);
+    }
 });
 
 test('a provisioned PSK is honoured regardless of server KDF', async () => {
