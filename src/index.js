@@ -38,7 +38,7 @@ window.onConnect = () => {
     let ip = document.getElementById("hmip").value
     let port = document.getElementById("hmport").value
     let key = document.getElementById("hmkey").value
-    // The password is all that is normally needed: against a v3 hub HiveMind-js
+    // The password is all that is normally needed: against a v3 hivemind-core instance HiveMind-js
     // derives the Noise PSK as argon2id(password, SHA-256(node_id)) in-browser via
     // @noble and negotiates the default ChaChaPoly suite (full parity with
     // hivemind-core); on the legacy v1 path it drives the PBKDF2-HMAC-SHA256

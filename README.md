@@ -1,5 +1,9 @@
 # hivemind-webspeech
 
+> [!WARNING]
+> HiveMind is pre-release software under active development. Expect bugs and
+> breaking changes between releases.
+
 Talk to a [hivemind-core](https://github.com/JarbasHiveMind/HiveMind-core) instance
 from your web browser — no install, no audio drivers, no Python. Open a page, grant
 microphone access, and speak.
