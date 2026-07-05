@@ -62,7 +62,7 @@ test('V1 client handshake + encrypted utterance reaches a real hub', async (t) =
     const { JarbasHiveMind } = require(resolveHivemindJs());
 
     const SAT_KEY = 'webspeech-key';
-    const SAT_PASSWORD = 'webspeech-password';
+    const SAT_PASSWORD = 'W3bsp33ch-C0rrect-H0rse-Batt3ry-v3';
     const UTTERANCE = 'hello from hivemind webspeech';
 
     const hub = spawn(python, [

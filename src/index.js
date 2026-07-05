@@ -6,9 +6,11 @@ function getToggleButton() {
 }
 
 
-// HiveMind Protocol V1 client (hivemind-js >= 0.2.0). The handshake, AES-GCM
+// HiveMind-js client (hivemind-js dev, protocol v0-v3). The handshake, AES-GCM
 // encryption, and the recognizer_loop:b64_audio bus message are all handled by
-// the client itself via the native sendAudioB64() convenience method.
+// the client itself via the native sendAudioB64() convenience method. The
+// client negotiates the highest protocol version both peers support (WIRE-1),
+// falling back to the legacy v1 password handshake against older hubs.
 const hivemind_connection = new JarbasHiveMind()
 
 
@@ -36,11 +38,23 @@ window.onConnect = () => {
     let ip = document.getElementById("hmip").value
     let port = document.getElementById("hmport").value
     let key = document.getElementById("hmkey").value
-    // V1: the password drives the PBKDF2-HMAC-SHA256 handshake + AES-GCM session
-    // key derivation. It replaces the V0 raw "crypto key".
+    // The password is all that is normally needed: against a v3 hivemind-core instance HiveMind-js
+    // derives the Noise PSK as argon2id(password, SHA-256(node_id)) in-browser via
+    // @noble and negotiates the default ChaChaPoly suite (full parity with
+    // hivemind-core); on the legacy v1 path it drives the PBKDF2-HMAC-SHA256
+    // handshake + AES-GCM session key.
     let password = document.getElementById("hmpassword").value
     let user = "HivemindWebSpeechV0.2"
-    hivemind_connection.connect(ip, port, user, key, password);
+
+    // Optional protocol-v3 (Noise) options. Empty fields leave the client on the
+    // password path (argon2id PSK in-browser, or legacy v1 fallback).
+    let options = {}
+    let psk = (document.getElementById("hmpsk").value || "").trim()
+    if (psk) options.psk = psk
+    let serverKey = (document.getElementById("hmserverkey").value || "").trim()
+    if (serverKey) options.serverNoiseKey = serverKey
+
+    hivemind_connection.connect(ip, port, user, key, password, options);
 
     window.toggleVAD()
     getToggleButton().disabled = false
