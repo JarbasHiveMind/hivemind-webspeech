@@ -103,7 +103,7 @@ session key derived during the handshake) before it leaves the browser. What
 crosses the wire is ciphertext, not the JSON above. The convenience method
 `sendAudioB64(base64)` on the V1 client builds and encrypts this message for
 you. The hub must be configured to accept the decoded message
-(`hivemind-core allow-msg "recognizer_loop:b64_audio"`) and run a listener new
+(`hivemind-core allow-msg "recognizer_loop:b64_audio"`) and run an OVOS speech service new
 enough to decode it (`ovos-dinkum-listener >= 0.0.3a19`).
 
 ### 5. Hub processing
