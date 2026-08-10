@@ -69,9 +69,9 @@ to `base64` for that utterance, so audio always flows.
 
 hivemind-core must be prepared to receive audio:
 
-1. **Listener version.** hivemind-core's listener must run
-   `ovos-dinkum-listener >= 0.0.3a19`, which understands base64 audio over the
-   bus.
+1. **Speech service version.** The OVOS speech service behind hivemind-core
+   must run `ovos-dinkum-listener >= 0.0.3a19`, which understands base64 audio
+   over the bus.
 2. **Allowed message.** hivemind-core must permit the audio bus message this
    client sends:
 

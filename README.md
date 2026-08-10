@@ -107,7 +107,7 @@ reference, model/voice hosting, and the transport and build notes.
 ## Prerequisites
 
 - A reachable [HiveMind-core](https://github.com/JarbasHiveMind/HiveMind-core) instance.
-- hivemind-core's listener running `ovos-dinkum-listener >= 0.0.3a19` so it can accept
+- the OVOS speech service behind hivemind-core running `ovos-dinkum-listener >= 0.0.3a19` so it can accept
   audio over the bus.
 - A modern browser with `getUserMedia` (microphone) support. The VAD model
   (Silero, via `onnxruntime-web`) loads from a CDN, so the page needs network
@@ -244,7 +244,7 @@ reference, the audio pipeline, and troubleshooting.
 | Symptom | Likely cause |
 |---|---|
 | Browser refuses to connect | Non-TLS WebSocket from an HTTPS page, or remote `ws://`. See [the TLS rule](#the-tls-rule-read-this-first). |
-| `Connected` but no reply | hivemind-core missing `allow-msg "recognizer_loop:b64_audio"`, or listener older than `0.0.3a19`. |
+| `Connected` but no reply | hivemind-core missing `allow-msg "recognizer_loop:b64_audio"`, or `ovos-dinkum-listener` older than `0.0.3a19`. |
 | VAD button never enables | The VAD model failed to load (no network for the CDN, or microphone permission denied). Check the browser console. |
 | No microphone prompt | The page must be served over `https://` or `http://localhost` for `getUserMedia` to work. |
 
