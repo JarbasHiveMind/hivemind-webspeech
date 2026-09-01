@@ -2,6 +2,7 @@ node_modules/
 dist/
 package-lock.json
 *.log
+tests/vendor/
 
 # Local agent scratch notes (not part of the project)
 AGENTS.md

@@ -24,7 +24,7 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -33,9 +33,14 @@ const require = createRequire(import.meta.url);
 // `ws` is required to run hivemind-js outside a browser.
 globalThis.WebSocket = require('ws');
 
-function resolveHivemindJs() {
+// hivemind-js is not published to npm; the README quickstart and CI both rely
+// on this falling back to a fetched copy so a plain `npm install && npm test`
+// works without a sibling checkout.
+const CLIENT_URL = process.env.HIVEMIND_JS_URL ||
+    'https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js';
+
+async function resolveHivemindJs() {
     if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);
-    // Installed dependency (CI: `npm ci`).
     try {
         return require.resolve('hivemind-js');
     } catch {
@@ -43,8 +48,19 @@ function resolveHivemindJs() {
         const sibling = resolve(
             __dirname, '..', '..', 'HiveMind-js', 'static', 'js', 'hivemind.js');
         if (existsSync(sibling)) return sibling;
-        throw new Error(
-            'hivemind-js not found. Run `npm ci`, or set HIVEMIND_JS_PATH.');
+        const vendored = resolve(__dirname, 'vendor', 'hivemind.cjs');
+        if (existsSync(vendored)) return vendored;
+        console.log(`[*] No local client found; fetching ${CLIENT_URL}`);
+        const res = await fetch(CLIENT_URL);
+        if (!res.ok) {
+            throw new Error(
+                `hivemind-js not found and fetch failed: HTTP ${res.status}. Set HIVEMIND_JS_PATH.`);
+        }
+        const body = await res.text();
+        const outDir = resolve(__dirname, 'vendor');
+        mkdirSync(outDir, { recursive: true });
+        writeFileSync(vendored, body);
+        return vendored;
     }
 }
 
@@ -59,7 +75,7 @@ test('V1 client handshake + encrypted utterance reaches a real hub', async (t) =
         t.skip(`hivemind-e2e python not found at ${python}`);
         return;
     }
-    const { JarbasHiveMind } = require(resolveHivemindJs());
+    const { JarbasHiveMind } = require(await resolveHivemindJs());
 
     const SAT_KEY = 'webspeech-key';
     const SAT_PASSWORD = 'W3bsp33ch-C0rrect-H0rse-Batt3ry-v3';
