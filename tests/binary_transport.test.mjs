@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
 import { floatTo16BitPCM, encodeAudioBinaryFrame } from '../src/audio.js';
 import { BIN_TYPES_FALLBACK } from '../src/constants.js';
@@ -18,18 +18,35 @@ import { BIN_TYPES_FALLBACK } from '../src/constants.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-function resolveHivemindJs() {
+// hivemind-js is not published to npm; fall back to the same vendored/fetched
+// copy tests/e2e.test.mjs and tests/v3_negotiation.test.mjs use, so this test
+// runs (rather than silently skipping) on a plain `npm install && npm test`.
+const CLIENT_URL = process.env.HIVEMIND_JS_URL ||
+    'https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js';
+
+async function resolveHivemindJs() {
   if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);
   try {
     return require.resolve('hivemind-js');
   } catch {
     const sibling = resolve(__dirname, '..', '..', 'HiveMind-js', 'static', 'js', 'hivemind.js');
     if (existsSync(sibling)) return sibling;
-    return null;
+    const vendored = resolve(__dirname, 'vendor', 'hivemind.cjs');
+    if (existsSync(vendored)) return vendored;
+    try {
+      const res = await fetch(CLIENT_URL);
+      if (!res.ok) return null;
+      const body = await res.text();
+      mkdirSync(resolve(__dirname, 'vendor'), { recursive: true });
+      writeFileSync(vendored, body);
+      return vendored;
+    } catch {
+      return null;
+    }
   }
 }
 
-const hmPath = resolveHivemindJs();
+const hmPath = await resolveHivemindJs();
 
 test('binary audio frame round-trips through the HiveMind-js WIRE-1 codec', { skip: !hmPath ? 'HiveMind-js not found (set HIVEMIND_JS_PATH)' : false }, async () => {
   const hm = require(hmPath);
