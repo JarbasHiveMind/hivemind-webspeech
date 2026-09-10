@@ -91,55 +91,75 @@ test('V1 client handshake + encrypted utterance reaches a real hub', async (t) =
     let hubStderr = '';
     hub.stderr.on('data', (chunk) => { hubStderr += chunk.toString(); });
 
-    // Read HUB_URL=... from the first stdout line.
-    const hubUrl = await new Promise((resolveUrl, rejectUrl) => {
-        const timer = setTimeout(
-            () => rejectUrl(new Error('hub did not print HUB_URL in time')), 20000);
-        let buf = '';
-        hub.stdout.on('data', (chunk) => {
-            buf += chunk.toString();
-            const line = buf.split('\n').find((l) => l.startsWith('HUB_URL='));
-            if (line) {
-                clearTimeout(timer);
-                resolveUrl(line.slice('HUB_URL='.length).trim());
-            }
-        });
-        hub.on('exit', (code) => {
-            clearTimeout(timer);
-            rejectUrl(new Error(`hub exited early with code ${code}`));
-        });
-    });
-
-    const url = new URL(hubUrl);
-    const host = url.hostname;
-    const port = parseInt(url.port, 10) || 5678;
-
-    const client = new JarbasHiveMind();
+    // The hub blocks reading its own stdin until told to stop (see
+    // loopback_hub.py), so every exit from the spawn on — pass or throw, and
+    // including a hub that never prints HUB_URL — MUST reach the `finally`
+    // below. Skipping it leaves the hub child referenced and the node-test
+    // process never exits (this is what turned one prior CI failure into a
+    // six-hour hang instead of a fast red test).
     try {
-        await new Promise((resolveConn, rejectConn) => {
+        // Read HUB_URL=... from the first stdout line.
+        const hubUrl = await new Promise((resolveUrl, rejectUrl) => {
             const timer = setTimeout(
-                () => rejectConn(new Error('handshake timeout')), 15000);
-            client.onHiveConnected = () => { clearTimeout(timer); resolveConn(); };
-            client.onHiveDisconnected = () => {
+                () => rejectUrl(new Error('hub did not print HUB_URL in time')), 20000);
+            let buf = '';
+            hub.stdout.on('data', (chunk) => {
+                buf += chunk.toString();
+                const line = buf.split('\n').find((l) => l.startsWith('HUB_URL='));
+                if (line) {
+                    clearTimeout(timer);
+                    resolveUrl(line.slice('HUB_URL='.length).trim());
+                }
+            });
+            hub.on('exit', (code) => {
                 clearTimeout(timer);
-                rejectConn(new Error('disconnected during handshake'));
-            };
-            client.connect(host, port, 'webspeech-sat', SAT_KEY, SAT_PASSWORD);
+                rejectUrl(new Error(`hub exited early with code ${code}`));
+            });
         });
 
-        await client.sendUtterance(UTTERANCE);
-        // Give the hub a moment to inject the decrypted message onto its bus.
-        await new Promise((r) => setTimeout(r, 1000));
+        const url = new URL(hubUrl);
+        const host = url.hostname;
+        const port = parseInt(url.port, 10) || 5678;
+
+        const client = new JarbasHiveMind();
+        try {
+            await new Promise((resolveConn, rejectConn) => {
+                const timer = setTimeout(
+                    () => rejectConn(new Error('handshake timeout')), 15000);
+                client.onHiveConnected = () => { clearTimeout(timer); resolveConn(); };
+                client.onHiveDisconnected = () => {
+                    clearTimeout(timer);
+                    rejectConn(new Error('disconnected during handshake'));
+                };
+                client.connect(host, port, 'webspeech-sat', SAT_KEY, SAT_PASSWORD);
+            });
+
+            await client.sendUtterance(UTTERANCE);
+            // Give the hub a moment to inject the decrypted message onto its bus.
+            await new Promise((r) => setTimeout(r, 1000));
+        } finally {
+            if (client.ws) client.ws.close();
+        }
+
+        // Closing stdin tells the hub to verify what it received and exit.
+        const hubExit = new Promise((resolveExit) => hub.on('exit', resolveExit));
+        hub.stdin.end();
+        const timeoutMs = 10000;
+        const code = await Promise.race([
+            hubExit,
+            new Promise((_, reject) => setTimeout(
+                () => reject(new Error(`hub did not exit within ${timeoutMs}ms of stdin close`)),
+                timeoutMs)),
+        ]);
+
+        assert.equal(code, 0, `hub did not receive the utterance (exit ${code})`);
+    } catch (err) {
+        // Most failures are thrown on the client side ('disconnected during
+        // handshake', 'hub did not print HUB_URL in time') and say nothing
+        // about why the hub refused. Print the hub's log for every failure.
+        console.error(`--- hub stderr ---\n${hubStderr || '(empty)'}\n--- end hub stderr ---`);
+        throw err;
     } finally {
-        if (client.ws) client.ws.close();
+        if (hub.exitCode === null && hub.signalCode === null) hub.kill('SIGKILL');
     }
-
-    // Closing stdin tells the hub to verify what it received and exit.
-    const hubExit = new Promise((resolveExit) => hub.on('exit', resolveExit));
-    hub.stdin.end();
-    const code = await hubExit;
-
-    assert.equal(
-        code, 0,
-        `hub did not receive the utterance (exit ${code})\n--- hub stderr ---\n${hubStderr}`);
 });

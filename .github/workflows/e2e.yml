@@ -10,6 +10,12 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    # Measured local pass time is under a second once the handshake completes,
+    # and a hung handshake now fails fast (tests/e2e.test.mjs always closes
+    # the loopback hub). 10 minutes leaves generous headroom for CI setup
+    # (npm install, venv build) while catching any future hang in minutes,
+    # not the six hours a prior run took before this cap existed.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
