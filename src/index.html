@@ -11,6 +11,21 @@
     <script src="https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.7/dist/bundle.min.js"></script>
+    <script type="module">
+      // HiveMind-js reads globalThis.HiveMindNoble for its @noble backend
+      // (chacha20poly1305, argon2id) instead of require(), which does not
+      // exist in a browser. Without it the client cannot derive a PSK
+      // against an argon2id hub — the server default — and falls back to
+      // the legacy handshake, which a protocol-v3 hub refuses outright.
+      // window.HiveMindNobleReady lets index.js await this before
+      // connecting instead of racing the import against a fast click.
+      window.HiveMindNobleReady = Promise.all([
+        import('https://esm.sh/@noble/ciphers@2.4.0/chacha.js'),
+        import('https://esm.sh/@noble/hashes@2.4.0/argon2.js'),
+      ]).then(([{ chacha20poly1305 }, { argon2id }]) => {
+        globalThis.HiveMindNoble = { chacha20poly1305, argon2id };
+      });
+    </script>
     <script type="module" src="index.js"></script>
 </head>
 <body>
