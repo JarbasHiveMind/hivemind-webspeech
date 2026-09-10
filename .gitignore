@@ -7,3 +7,5 @@ tests/vendor/
 # Local agent scratch notes (not part of the project)
 AGENTS.md
 TODO.md
+hivemind-js-src/
+.venv-e2e/

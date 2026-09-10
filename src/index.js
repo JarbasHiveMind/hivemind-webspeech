@@ -165,8 +165,13 @@ async function speakWithPhoonnx(text) {
 }
 
 // ── Connect ───────────────────────────────────────────────────────────────────
-window.onConnect = () => {
+window.onConnect = async () => {
   console.log('connecting to HiveMind');
+  // Wait for the @noble backend (globalThis.HiveMindNoble) so a fast click
+  // right after page load can't race the module import: without it the
+  // client cannot derive an argon2id PSK and falls back to a handshake a
+  // v3 hub refuses.
+  if (window.HiveMindNobleReady) await window.HiveMindNobleReady;
   const ip = document.getElementById('hmip').value;
   const port = document.getElementById('hmport').value;
   const key = document.getElementById('hmkey').value;
