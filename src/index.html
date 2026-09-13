@@ -27,6 +27,16 @@
       });
     </script>
     <script type="module" src="index.js"></script>
+    <style>
+        /* Keep every field inside a 400px-wide viewport: no fixed character
+           width, and long option text wraps inside the field width. */
+        input, select, details, summary { max-width: 100%; box-sizing: border-box; }
+        select { width: 100%; text-overflow: ellipsis; }
+        input[type="text"], input[type="password"] { width: 100%; }
+        #logo { max-width: 100%; height: auto; }
+        audio { max-width: 100%; }
+        .section { padding-left: 1rem; padding-right: 1rem; }
+    </style>
 </head>
 <body>
 <section class="section">
@@ -93,7 +103,7 @@
                 </select>
                 <br>
                 Wake-word model URL:
-                <input id="cfgPreciseModel" autocomplete="off" type="text" size="60"
+                <input id="cfgPreciseModel" autocomplete="off" type="text"
                        placeholder="Precise .onnx model URL"><br>
 
                 Audio transport:
@@ -110,7 +120,7 @@
                 </select>
                 <br>
                 phoonnx voice id:
-                <input id="cfgPhoonnxVoice" autocomplete="off" type="text" size="40"
+                <input id="cfgPhoonnxVoice" autocomplete="off" type="text"
                        placeholder="phoonnx voice id"><br>
 
                 <button onclick="window.onSaveSettings();" id="saveSettings">SAVE SETTINGS</button>
