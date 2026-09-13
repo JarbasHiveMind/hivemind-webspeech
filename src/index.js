@@ -33,6 +33,19 @@ function getToggleButton() {
   return document.getElementById('toggleVAD');
 }
 
+// One visible status line (role="status") carries the connection and
+// microphone state, so a failure is readable on the page and announced by
+// screen readers.
+function setStatus(text) {
+  const el = document.getElementById('status');
+  if (el) el.textContent = text;
+}
+
+function errorText(e) {
+  if (e && e.message) return e.message;
+  return String(e);
+}
+
 function logLine(text) {
   const speechList = document.getElementById('audio-list');
   if (!speechList) return;
@@ -49,7 +62,10 @@ function logLine(text) {
 const hivemind_connection = new JarbasHiveMind();
 
 hivemind_connection.onHiveConnected = function () {
-  window.alert('Connected to HiveMind!');
+  setStatus('Connected to HiveMind.');
+  // The microphone starts only after the handshake completes, so no utterance
+  // is captured before there is a session to send it on.
+  startMic().catch((e) => console.error('microphone start failed:', e));
 };
 
 hivemind_connection.onMycroftSpeak = function (mycroft_message) {
@@ -61,7 +77,11 @@ hivemind_connection.onMycroftSpeak = function (mycroft_message) {
 };
 
 hivemind_connection.onHiveDisconnected = function () {
-  window.alert('Hivemind connection lost...');
+  setStatus('HiveMind connection lost.');
+  if (myvad && myvad.listening) {
+    myvad.pause();
+    setToggleState(false);
+  }
 };
 
 // A close code 1008 (Policy Violation) means the hub rejected the
@@ -70,7 +90,9 @@ hivemind_connection.onHiveDisconnected = function () {
 // user only sees the generic "connection lost" alert with no indication why.
 hivemind_connection.onHiveError = function (error) {
   console.error('HiveMind error:', error);
-  logLine('HiveMind error: ' + (error && error.message ? error.message : error));
+  const text = 'HiveMind error: ' + errorText(error);
+  logLine(text);
+  setStatus(text);
 };
 
 window.hivemind_connection = hivemind_connection;
@@ -188,11 +210,13 @@ window.onConnect = async () => {
   const serverKey = (document.getElementById('hmserverkey').value || '').trim();
   if (serverKey) options.serverNoiseKey = serverKey;
 
-  hivemind_connection.connect(ip, port, user, key, password, options);
-
-  window.toggleVAD();
-  getToggleButton().disabled = false;
-  getToggleButton().classList.remove('is-loading');
+  setStatus('Connecting to HiveMind…');
+  try {
+    hivemind_connection.connect(ip, port, user, key, password, options);
+  } catch (e) {
+    console.error('connect failed:', e);
+    setStatus('Connection failed: ' + errorText(e));
+  }
 };
 
 // ── Settings panel ────────────────────────────────────────────────────────────
@@ -234,68 +258,107 @@ window.onSaveSettings = () => {
 };
 
 // ── Microphone + VAD ──────────────────────────────────────────────────────────
-async function main() {
-  applyConfigToForm();
+let myvad = null;
+let _micStarting = null;
 
-  function addAudio(audioUrl) {
-    const entry = document.createElement('li');
-    const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.src = audioUrl;
-    entry.appendChild(audio);
-    return entry;
+function setToggleState(listening) {
+  const button = getToggleButton();
+  if (!button) return;
+  button.textContent = listening ? 'Stop VAD' : 'Start VAD';
+}
+
+function addAudio(audioUrl) {
+  const entry = document.createElement('li');
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.src = audioUrl;
+  entry.appendChild(audio);
+  return entry;
+}
+
+async function handleUtterance(arr) {
+  const decision = await captureGate.consider(arr);
+  if (!decision.send) {
+    if (decision.armed) logLine('Wake word detected — listening…');
+    return;
   }
 
-  async function handleUtterance(arr) {
-    const decision = await captureGate.consider(arr);
-    if (!decision.send) {
-      if (decision.armed) logLine('Wake word detected — listening…');
-      return;
-    }
-
-    const wavBuffer = vad.utils.encodeWAV(arr);
-    const base64 = vad.utils.arrayBufferToBase64(wavBuffer);
-    const url = `data:audio/wav;base64,${base64}`;
-    document.getElementById('audio-list').prepend(addAudio(url));
-
-    try {
-      if (config.transport === 'binary' && canSendBinary(hivemind_connection)) {
-        const pcm = floatTo16BitPCM(arr);
-        await sendAudioBinary(hivemind_connection, pcm, { sample_rate: 16000, sample_width: 2 });
-      } else {
-        if (config.transport === 'binary') {
-          console.warn('binary transport not negotiated; using base64');
-        }
-        await hivemind_connection.sendAudioB64(base64);
-      }
-    } catch (e) {
-      console.error('failed to send audio:', e);
-    }
-  }
+  const wavBuffer = vad.utils.encodeWAV(arr);
+  const base64 = vad.utils.arrayBufferToBase64(wavBuffer);
+  const url = `data:audio/wav;base64,${base64}`;
+  document.getElementById('audio-list').prepend(addAudio(url));
 
   try {
-    const myvad = await vad.MicVAD.new({
-      onSpeechStart: () => console.log('Speech start'),
-      onSpeechEnd: (arr) => {
-        console.log('Speech end');
-        handleUtterance(arr).catch((e) => console.error(e));
-      },
-    });
-
-    window.myvad = myvad;
-
-    window.toggleVAD = () => {
-      if (myvad.listening === false) {
-        myvad.start();
-        getToggleButton().textContent = 'Stop VAD';
-      } else {
-        myvad.pause();
-        getToggleButton().textContent = 'Start VAD';
+    if (config.transport === 'binary' && canSendBinary(hivemind_connection)) {
+      const pcm = floatTo16BitPCM(arr);
+      await sendAudioBinary(hivemind_connection, pcm, { sample_rate: 16000, sample_width: 2 });
+    } else {
+      if (config.transport === 'binary') {
+        console.warn('binary transport not negotiated; using base64');
       }
-    };
+      await hivemind_connection.sendAudioB64(base64);
+    }
   } catch (e) {
-    console.error('Failed:', e);
+    console.error('failed to send audio:', e);
+    setStatus('Failed to send audio: ' + errorText(e));
   }
+}
+
+// Create the MicVAD and start listening. On failure the cause goes to the
+// status line and the button stays enabled, so a click retries the start.
+async function startMic() {
+  if (!_micStarting) {
+    _micStarting = (async () => {
+      const button = getToggleButton();
+      try {
+        if (!myvad) {
+          myvad = await vad.MicVAD.new({
+            onSpeechStart: () => console.log('Speech start'),
+            onSpeechEnd: (arr) => {
+              console.log('Speech end');
+              handleUtterance(arr).catch((e) => {
+                console.error(e);
+                setStatus('Failed to send audio: ' + errorText(e));
+              });
+            },
+          });
+          window.myvad = myvad;
+        }
+        myvad.start();
+        setToggleState(true);
+        setStatus('Listening.');
+        return true;
+      } catch (e) {
+        console.error('microphone start failed:', e);
+        myvad = null;
+        setToggleState(false);
+        setStatus('Microphone failed: ' + errorText(e));
+        return false;
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('is-loading');
+        }
+        _micStarting = null;
+      }
+    })();
+  }
+  return _micStarting;
+}
+
+// Defined at load, so the button never calls an undefined function.
+window.toggleVAD = async () => {
+  if (!myvad || myvad.listening === false) {
+    return startMic();
+  }
+  myvad.pause();
+  setToggleState(false);
+  setStatus('Microphone paused.');
+  return true;
+};
+
+async function main() {
+  applyConfigToForm();
 }
 
 // Guard the DOM bootstrap so the module can be imported headlessly in tests.

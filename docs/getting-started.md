@@ -64,22 +64,25 @@ Fill the form:
 | **Access Key** | From `hivemind-core add-client` |
 | **Password** | The Password from `hivemind-core add-client` |
 
-Click **CONNECT**. An alert confirms:
+Click **CONNECT**. The status line under the settings shows the state:
 
 ```
-Connected to HiveMind!
+Listening.
 ```
 
-If the connection drops later you get `Hivemind connection lost...`.
+If the connection drops later, the status line shows
+`HiveMind connection lost.` and the microphone pauses.
 
 ## 5. Speak
 
-After connecting, the **Start VAD** button activates.
+The microphone starts when the hub accepts the connection. The page asks for
+microphone permission the first time.
 
-1. Click **Start VAD** (the page asks for microphone permission the first
-   time).
-2. Just talk. Voice activity detection runs in the browser and detects when
+1. Just talk. Voice activity detection runs in the browser and detects when
    you start and stop speaking. There is no wake word.
+2. If the microphone cannot start, the status line shows
+   `Microphone failed:` and the cause. Fix the cause, then click
+   **Start VAD** to try again.
 3. Each detected utterance is sent to the hub. The spoken reply appears as:
 
    ```
@@ -87,7 +90,7 @@ After connecting, the **Start VAD** button activates.
    ```
 
    and the captured audio is added to the list with a playback control.
-4. Click **Stop VAD** to mute capture.
+4. Click **Stop VAD** to mute capture. Click **Start VAD** to listen again.
 
 You are now talking to your hive from the browser.
 
