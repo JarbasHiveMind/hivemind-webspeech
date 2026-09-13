@@ -50,7 +50,9 @@ function errorText(e) {
 function logLine(text) {
   const speechList = document.getElementById('audio-list');
   if (!speechList) return;
-  const entry = document.createElement('p');
+  // A list item, so the <ul> holds only <li> children; the list is an
+  // aria-live region, so a screen reader announces each new line.
+  const entry = document.createElement('li');
   entry.textContent = text;
   speechList.prepend(entry);
 }
@@ -265,6 +267,7 @@ function setToggleState(listening) {
   const button = getToggleButton();
   if (!button) return;
   button.textContent = listening ? 'Stop VAD' : 'Start VAD';
+  button.setAttribute('aria-pressed', listening ? 'true' : 'false');
 }
 
 function addAudio(audioUrl) {

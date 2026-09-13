@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>HiveMind Speech WebClient</title>
     <meta charset="UTF-8"/>
@@ -45,9 +45,9 @@
         <h1>
             HiveMind Speech WebClient<br>
 
-            <a href="https://github.com/JarbasHiveMind/">
+            <a href="https://github.com/JarbasHiveMind/" aria-label="HiveMind on GitHub">
                 <img src="https://github.com/JarbasHiveMind/HiveMind-assets/blob/master/logo/hivemind-128.png?raw=true"
-                     id="logo"></img>
+                     id="logo" alt=""></img>
             </a>
 
         </h1>
@@ -56,13 +56,13 @@
         HiveMind Credentials
         <br>
         <form onsubmit="return false">
-            IP:
+            <label for="hmip">IP:</label>
             <input id="hmip" autocomplete="off" type="text" placeholder="0.0.0.0"><br>
-            Port:
+            <label for="hmport">Port:</label>
             <input id="hmport" autocomplete="off" type="text" placeholder="5678"><br>
-            Access Key:
+            <label for="hmkey">Access Key:</label>
             <input id="hmkey" autocomplete="off" type="text" placeholder="hivemind access key"><br>
-            Password:
+            <label for="hmpassword">Password:</label>
             <input id="hmpassword" autocomplete="off" type="password" placeholder="hivemind password"><br>
 
             <details>
@@ -77,9 +77,9 @@
                     derivation, and/or a server key pin for TOFU pinning. Leave blank
                     to use the password.
                 </small><br>
-                Provisioned PSK (64 hex chars):
+                <label for="hmpsk">Provisioned PSK (64 hex chars):</label>
                 <input id="hmpsk" autocomplete="off" type="text" placeholder="optional Noise PSK"><br>
-                Server key pin (64 hex chars):
+                <label for="hmserverkey">Server key pin (64 hex chars):</label>
                 <input id="hmserverkey" autocomplete="off" type="text" placeholder="optional TOFU pin"><br>
             </details>
 
@@ -96,30 +96,30 @@
             </small>
             <br><br>
             <form onsubmit="return false">
-                Wake word:
+                <label for="cfgWakeWord">Wake word:</label>
                 <select id="cfgWakeWord">
                     <option value="off">off — stream every utterance (VAD / push-to-talk)</option>
                     <option value="precise-onnx-js">precise-onnx-js — gate capture behind an in-browser wake word</option>
                 </select>
                 <br>
-                Wake-word model URL:
+                <label for="cfgPreciseModel">Wake-word model URL:</label>
                 <input id="cfgPreciseModel" autocomplete="off" type="text"
                        placeholder="Precise .onnx model URL"><br>
 
-                Audio transport:
+                <label for="cfgTransport">Audio transport:</label>
                 <select id="cfgTransport">
                     <option value="base64">base64 — recognizer_loop:b64_audio bus message</option>
                     <option value="binary">binary — WIRE-1 raw-PCM audio frames (smaller)</option>
                 </select>
                 <br>
 
-                Text to speech:
+                <label for="cfgTts">Text to speech:</label>
                 <select id="cfgTts">
                     <option value="server-text">server-text — show the reply as text</option>
                     <option value="phoonnx-js">phoonnx-js — synthesize the reply in-browser and play it</option>
                 </select>
                 <br>
-                phoonnx voice id:
+                <label for="cfgPhoonnxVoice">phoonnx voice id:</label>
                 <input id="cfgPhoonnxVoice" autocomplete="off" type="text"
                        placeholder="phoonnx voice id"><br>
 
@@ -136,6 +136,7 @@
             <button
                     id="toggleVAD"
                     class="button is-primary is-loading"
+                    aria-pressed="false"
                     onclick="window.toggleVAD()"
                     disabled
             >
@@ -146,7 +147,7 @@
         <p id="status" role="status">Not connected.</p>
 
         <div class="block">
-            <ul id="audio-list"></ul>
+            <ul id="audio-list" aria-live="polite" aria-relevant="additions"></ul>
         </div>
     </div>
 </section>
