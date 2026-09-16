@@ -46,5 +46,5 @@ hivemind-core allow-msg "recognizer_loop:b64_audio"   # permit audio over the bu
 ```
 
 Then open the [demo](https://jarbashivemind.github.io/hivemind-webspeech) (or your
-own build), enter IP / port / access key / password, click **CONNECT**, then
-**Start VAD**, and speak.
+own build), enter IP / port / access key / password, click **CONNECT**, and speak
+when the status line shows `Listening`.

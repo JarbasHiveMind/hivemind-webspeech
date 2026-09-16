@@ -50,12 +50,15 @@ hivemind_connection.connect(ip, port, "HivemindWebSpeechV0.2", key, password)
 
 HiveMind-js opens the WebSocket, authenticates with the access key, then runs
 the V1 password handshake to derive the AES-GCM session key before any payload
-is sent. On success, `onHiveConnected` fires (`Connected to HiveMind!`). A
-dropped connection fires `onHiveDisconnected` (`Hivemind connection lost...`).
+is sent. On success, `onHiveConnected` fires, the status line (`role="status"`) shows
+`Connected to HiveMind.`, and the microphone starts. A dropped connection fires
+`onHiveDisconnected`: the status line shows `HiveMind connection lost.` and the
+microphone pauses. A microphone start failure or an audio send failure also
+shows its cause on the status line.
 
 ### 2. Detect speech
 
-`vad.MicVAD` runs continuously once **Start VAD** is pressed. It uses the
+`vad.MicVAD` runs continuously once the connection is up. It uses the
 Silero VAD model to detect speech boundaries:
 
 - `onSpeechStart`: logged when you begin speaking.

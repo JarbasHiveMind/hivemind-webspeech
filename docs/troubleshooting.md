@@ -43,13 +43,14 @@ audio arrives and is discarded.
 
 ## Audio capture / VAD
 
-### The "Start VAD" button never enables (stays loading)
+### The status line shows "Microphone failed"
 
-The VAD failed to initialize. Causes:
+The VAD failed to initialize. The text after `Microphone failed:` is the
+cause. Fix it, then click **Start VAD** to try again. Causes:
 
 - **No network on first load.** The VAD model and `onnxruntime-web` load from
   a CDN. Check the console for failed CDN requests.
-- **Microphone permission denied.** Grant it and reload.
+- **Microphone permission denied.** Grant it, then click **Start VAD**.
 - **Insecure context.** `getUserMedia` only works over `https://` or
   `http://localhost`. Opened any other way, the mic is unavailable.
 

@@ -157,8 +157,8 @@ your own copy (see [Build](#build)).
 ### 4. Connect and speak
 
 1. Fill in **IP**, **Port** (default `5678`), **Access Key**, and **Password**.
-2. Click **CONNECT**. An alert confirms `Connected to HiveMind!`.
-3. The VAD toggle activates. Click **Start VAD**, then just talk.
+2. Click **CONNECT**. The status line shows `Listening.`
+3. The microphone starts when the hub accepts the connection. Just talk.
 4. Each detected utterance is sent to hivemind-core. The spoken reply appears in
    the page as `HiveMind says: …`, and the captured audio is listed with a
    playback control.
