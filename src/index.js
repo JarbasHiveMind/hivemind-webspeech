@@ -16,6 +16,7 @@ import {
   encodeAudioBinaryFrame,
   CaptureGate,
   detectWakeWordInUtterance,
+  playAudioBlob,
 } from './audio.js';
 
 // ── Library CDN locations (loaded lazily, only when the matching mode is on) ───
@@ -160,8 +161,7 @@ async function speakWithPhoonnx(text) {
     p.voice = await p.mod.loadVoice(entry);
   }
   const blob = await p.mod.synthesizeWav(p.voice, text);
-  const audio = new Audio(URL.createObjectURL(blob));
-  await audio.play();
+  await playAudioBlob(blob);
 }
 
 // ── Connect ───────────────────────────────────────────────────────────────────

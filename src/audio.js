@@ -91,3 +91,30 @@ export async function detectWakeWordInUtterance(detector, float32, chunkSize = 2
   }
   return fired;
 }
+
+/**
+ * Play a synthesized audio Blob through an object URL, and revoke the URL when
+ * playback ends or fails, so each reply does not keep its Blob in memory.
+ * AudioCtor and urlApi default to the browser globals and are injectable for
+ * tests.
+ */
+export async function playAudioBlob(blob, AudioCtor = globalThis.Audio, urlApi = globalThis.URL) {
+  const url = urlApi.createObjectURL(blob);
+  let revoked = false;
+  const revoke = () => {
+    if (!revoked) {
+      revoked = true;
+      urlApi.revokeObjectURL(url);
+    }
+  };
+  const audio = new AudioCtor(url);
+  audio.addEventListener('ended', revoke, { once: true });
+  audio.addEventListener('error', revoke, { once: true });
+  try {
+    await audio.play();
+  } catch (e) {
+    revoke();
+    throw e;
+  }
+  return audio;
+}
