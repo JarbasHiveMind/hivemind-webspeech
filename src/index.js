@@ -23,8 +23,13 @@ import {
 // precise-onnx-js ships plain browser scripts that export globals; phoonnx.js is
 // an ESM package built on demand by esm.sh. Neither is fetched under the default
 // settings, so the default page is unchanged.
-const PRECISE_MFCC_URL = 'https://cdn.jsdelivr.net/gh/TigreGotico/precise-onnx-js@main/src/mfcc.js';
-const PRECISE_WW_URL = 'https://cdn.jsdelivr.net/gh/TigreGotico/precise-onnx-js@main/src/wakeword.js';
+// The precise-onnx-js scripts are pinned to a commit and carry a subresource
+// integrity hash, so the page runs only the reviewed bytes.
+const PRECISE_COMMIT = 'c64f6db3d0da6d5eb66facd122446f73b0c4a1df';
+const PRECISE_MFCC_URL = `https://cdn.jsdelivr.net/gh/TigreGotico/precise-onnx-js@${PRECISE_COMMIT}/src/mfcc.js`;
+const PRECISE_MFCC_SRI = 'sha384-xyJfWms5iNxJ3m6gZqXctdYv8pmj7Y9Kaot7nKda4mlZs38Gf0tfSVV+5G0rV/lt';
+const PRECISE_WW_URL = `https://cdn.jsdelivr.net/gh/TigreGotico/precise-onnx-js@${PRECISE_COMMIT}/src/wakeword.js`;
+const PRECISE_WW_SRI = 'sha384-FWd9wXam9k2171SdLTzz+fET3zMl6yRz6aDpQ1YfotSRVvl6TgdYJzZ/K4MkdWBv';
 const PHOONNX_ESM_URL = 'https://esm.sh/gh/TigreGotico/phoonnx.js';
 const PHOONNX_VOICES_ESM_URL = 'https://esm.sh/gh/TigreGotico/phoonnx.js/voices';
 
@@ -123,10 +128,14 @@ async function sendAudioBinary(conn, pcmBytes, meta) {
 
 // ── Wake word (precise-onnx-js), loaded on demand ─────────────────────────────
 let _preciseLoaded = null;
-function loadScriptOnce(url) {
+function loadScriptOnce(url, integrity) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
     s.src = url;
+    if (integrity) {
+      s.integrity = integrity;
+      s.crossOrigin = 'anonymous';
+    }
     s.onload = resolve;
     s.onerror = () => reject(new Error('failed to load ' + url));
     document.head.appendChild(s);
@@ -138,8 +147,8 @@ async function ensurePrecise() {
     _preciseLoaded = (async () => {
       // mfcc.js must load before wakeword.js; both need globalThis.ort (already
       // present — onnxruntime-web is loaded for the VAD).
-      await loadScriptOnce(PRECISE_MFCC_URL);
-      await loadScriptOnce(PRECISE_WW_URL);
+      await loadScriptOnce(PRECISE_MFCC_URL, PRECISE_MFCC_SRI);
+      await loadScriptOnce(PRECISE_WW_URL, PRECISE_WW_SRI);
       return globalThis.PreciseOnnxWakeWord;
     })();
   }
