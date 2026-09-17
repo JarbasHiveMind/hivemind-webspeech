@@ -23,15 +23,14 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { CLIENT_URL } from './hivemind_js_pin.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-// hivemind-js is not published to npm. Same CDN URL used by CI's sibling
-// checkout, so a plain `npm install && npm test` (no HIVEMIND_JS_PATH, no
-// sibling checkout) still works, matching e2e.test.mjs's own fallback.
-const CLIENT_URL = process.env.HIVEMIND_JS_URL ||
-    'https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js';
+// hivemind-js is not published to npm. CLIENT_URL is the pin src/index.html
+// ships, read from the page itself, so a plain `npm install && npm test` (no
+// HIVEMIND_JS_PATH, no sibling checkout) drives the build the page loads.
 
 async function resolveHivemindJs() {
     if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);

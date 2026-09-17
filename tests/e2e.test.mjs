@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { CLIENT_URL } from './hivemind_js_pin.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -35,9 +36,8 @@ globalThis.WebSocket = require('ws');
 
 // hivemind-js is not published to npm; the README quickstart and CI both rely
 // on this falling back to a fetched copy so a plain `npm install && npm test`
-// works without a sibling checkout.
-const CLIENT_URL = process.env.HIVEMIND_JS_URL ||
-    'https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js';
+// works without a sibling checkout. CLIENT_URL is the pin src/index.html
+// ships, read from the page itself.
 
 async function resolveHivemindJs() {
     if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);
