@@ -46,6 +46,16 @@ test('defaults preserve the original behaviour on every axis', () => {
   assert.equal(DEFAULTS.tts, 'server-text');
 });
 
+test('the default wake-word model URL is a pinned, valid precise-lite path', () => {
+  // precise-lite-models keeps the models at wakewords/<lang>/<name>.onnx. The
+  // older wakewords/<name>/<name>.onnx path gives HTTP 404, which makes the
+  // precise-onnx-js mode fail at the model load with the default settings.
+  const url = DEFAULTS.preciseModelUrl;
+  const m = /^https:\/\/cdn\.jsdelivr\.net\/gh\/OpenVoiceOS\/precise-lite-models@([^/]+)\/wakewords\/([a-z]{2})\/([A-Za-z0-9_-]+)\.onnx$/.exec(url);
+  assert.ok(m, `unexpected default model URL: ${url}`);
+  assert.match(m[1], /^[0-9a-f]{40}$/); // a commit, not a branch
+});
+
 test('loadConfig returns the defaults when storage is empty or missing', () => {
   assert.deepEqual(loadConfig(memStorage()), normalizeConfig());
   assert.deepEqual(loadConfig(null), normalizeConfig());

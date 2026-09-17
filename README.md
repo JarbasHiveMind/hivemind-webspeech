@@ -168,12 +168,18 @@ your own copy (see [Build](#build)).
 
 Runtime dependencies (HiveMind-js, `onnxruntime-web`, `@ricky0123/vad-web`, Bulma
 CSS) load from CDNs declared in `src/index.html`, so there is nothing to compile
-to run the page. The HiveMind-js client is pulled from jsDelivr, tracking the
-`dev` branch so the page always loads the current protocol-v3 client:
+to run the page. The HiveMind-js client is pulled from jsDelivr. The URL names a
+commit and the tag carries a `sha384` integrity hash, so the browser refuses the
+script if the bytes change:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@c7936b389fd93b146407ad92f008bd4f2f87bc7e/static/js/hivemind.js"
+        integrity="sha384-z8LRgHa7CaShsXSB6Z14l+2ZhKU4NTjIiB0KkqqJFi7Xknuxm/Ny0ilkQVJtC/Wx"
+        crossorigin="anonymous"></script>
 ```
+
+To move to a newer client, put the new commit in the URL and compute the hash
+again. `src/index.html` holds the tag the page really loads.
 
 Serve `src/` directly with any static web server, or produce a bundled `dist/`
 with `esbuild` (the only build-time tool, run via `npx`):
