@@ -1,7 +1,7 @@
 {
   "name": "hivemind-webspeech",
   "version": "0.2.0",
-  "description": "Browser WebSpeech frontend for HiveMind — captures the microphone, runs VAD locally, and streams utterances to hivemind-core over an encrypted (hivemind-js) WebSocket, negotiating protocol v3 (Noise) with legacy v1 fallback.",
+  "description": "Browser WebSpeech frontend for HiveMind \u2014 captures the microphone, runs VAD locally, and streams utterances to hivemind-core over an encrypted (hivemind-js) WebSocket, negotiating protocol v3 (Noise) with legacy v1 fallback.",
   "license": "Apache-2.0",
   "author": "JarbasAi <jarbasai@mailfence.com>",
   "homepage": "https://github.com/JarbasHiveMind/hivemind-webspeech#readme",
@@ -29,7 +29,8 @@
   "scripts": {
     "build": "./build.sh",
     "serve": "node -e \"import('node:http').then(({createServer})=>import('node:fs').then(({readFileSync,existsSync})=>{const dir=process.env.DIR||'src';createServer((q,s)=>{let p=q.url==='/'?'/index.html':q.url;const f=dir+p;if(existsSync(f)){s.setHeader('content-type',p.endsWith('.js')?'text/javascript':p.endsWith('.css')?'text/css':'text/html');s.end(readFileSync(f));}else{s.statusCode=404;s.end('not found');}}).listen(8000,()=>console.log('serving '+dir+' on http://localhost:8000'));}))\"",
-    "test": "node --test \"tests/**/*.test.mjs\""
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "verify:pins": "node scripts/verify_pins.mjs"
   },
   "devDependencies": {
     "@noble/ciphers": "2.4.0",

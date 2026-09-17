@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { CLIENT_URL } from './hivemind_js_pin.mjs';
 
 import { floatTo16BitPCM, encodeAudioBinaryFrame } from '../src/audio.js';
 import { BIN_TYPES_FALLBACK } from '../src/constants.js';
@@ -18,11 +19,9 @@ import { BIN_TYPES_FALLBACK } from '../src/constants.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-// hivemind-js is not published to npm; fall back to the same vendored/fetched
-// copy tests/e2e.test.mjs and tests/v3_negotiation.test.mjs use, so this test
-// runs (rather than silently skipping) on a plain `npm install && npm test`.
-const CLIENT_URL = process.env.HIVEMIND_JS_URL ||
-    'https://cdn.jsdelivr.net/gh/JarbasHiveMind/HiveMind-js@dev/static/js/hivemind.js';
+// hivemind-js is not published to npm. CLIENT_URL is the pin src/index.html
+// ships, read from the page itself, so this test drives the same build the
+// page loads on a plain `npm install && npm test`.
 
 async function resolveHivemindJs() {
   if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);

@@ -20,12 +20,14 @@ jobs:
       - uses: actions/checkout@v7
 
       # hivemind-js is not published to npm; the e2e drives the exact client the
-      # page ships, so check it out and point HIVEMIND_JS_PATH at its hivemind.js.
+      # page ships, so check out the commit src/index.html pins and point
+      # HIVEMIND_JS_PATH at its hivemind.js. tests/pin_parity.test.mjs fails if
+      # this ref and the page's pin ever differ.
       - name: Checkout HiveMind-js
         uses: actions/checkout@v7
         with:
           repository: JarbasHiveMind/HiveMind-js
-          ref: dev
+          ref: c7936b389fd93b146407ad92f008bd4f2f87bc7e
           path: hivemind-js-src
 
       - name: Set up Node
