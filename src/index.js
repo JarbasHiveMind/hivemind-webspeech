@@ -149,7 +149,22 @@ async function ensurePrecise() {
       // present — onnxruntime-web is loaded for the VAD).
       await loadScriptOnce(PRECISE_MFCC_URL, PRECISE_MFCC_SRI);
       await loadScriptOnce(PRECISE_WW_URL, PRECISE_WW_SRI);
-      return globalThis.PreciseOnnxWakeWord;
+      // wakeword.js declares `class PreciseOnnxWakeWord` at the top level of a
+      // classic script. A top-level class is a lexical binding in the global
+      // scope. This module reads it by name, but it never becomes a property
+      // of globalThis the way `var` does, so globalThis.PreciseOnnxWakeWord is
+      // undefined. The globalThis read stays as a fallback for a build that
+      // does attach one.
+      const Precise =
+        typeof PreciseOnnxWakeWord !== 'undefined'
+          ? PreciseOnnxWakeWord
+          : globalThis.PreciseOnnxWakeWord;
+      if (typeof Precise?.load !== 'function') {
+        throw new Error(
+          'wakeword.js loaded, but PreciseOnnxWakeWord.load is not a function'
+        );
+      }
+      return Precise;
     })();
   }
   return _preciseLoaded;
@@ -378,3 +393,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   window.TTS_MODES = TTS_MODES;
   main();
 }
+
+// Exported for the unit tests only. The page itself calls ensurePrecise()
+// through getWakeDetector().
+export { ensurePrecise as __ensurePreciseForTest };
