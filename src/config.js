@@ -23,9 +23,11 @@ export const TRANSPORT_MODES = ['base64', 'binary'];
 export const TTS_MODES = ['server-text', 'phoonnx-js'];
 
 // A hosted precise-lite wake-word model. Any Precise `.onnx` URL works; this one
-// is served from jsDelivr so the page needs no committed weights.
+// is served from jsDelivr so the page needs no committed weights. The path is
+// `wakewords/<lang>/<name>.onnx` and the URL is pinned to a commit, so the page
+// always gets the same bytes.
 export const DEFAULT_PRECISE_MODEL_URL =
-  'https://cdn.jsdelivr.net/gh/OpenVoiceOS/precise-lite-models@master/wakewords/hey_mycroft/hey_mycroft.onnx';
+  'https://cdn.jsdelivr.net/gh/OpenVoiceOS/precise-lite-models@19274118d1525c12c4b4ebfe3e993f72828e3742/wakewords/en/hey_mycroft.onnx';
 
 // A phoonnx voice id (see the phoonnx.js voice registry). Piper / Home-Assistant
 // compatible espeak voices and unicode voices are both valid.
