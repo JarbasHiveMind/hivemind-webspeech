@@ -8,44 +8,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { CLIENT_URL } from './hivemind_js_pin.mjs';
+import { resolveHivemindJs, HiveMindJsMismatch } from './hivemind_js_pin.mjs';
 
 import { floatTo16BitPCM, encodeAudioBinaryFrame } from '../src/audio.js';
 import { BIN_TYPES_FALLBACK } from '../src/constants.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
-// hivemind-js is not published to npm. CLIENT_URL is the pin src/index.html
-// ships, read from the page itself, so this test drives the same build the
-// page loads on a plain `npm install && npm test`.
+// hivemind-js is not published to npm. resolveHivemindJs in
+// hivemind_js_pin.mjs finds the file and checks its sha384 against the
+// integrity attribute src/index.html carries, so this suite drives the build
+// the page loads, or fails and says which file differs.
 
-async function resolveHivemindJs() {
-  if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);
+// A mismatch is an error, not a skip: the file is there and it is the wrong
+// build. Only a missing client (no fetch possible) skips the test.
+async function resolveOrNull() {
   try {
-    return require.resolve('hivemind-js');
-  } catch {
-    const sibling = resolve(__dirname, '..', '..', 'HiveMind-js', 'static', 'js', 'hivemind.js');
-    if (existsSync(sibling)) return sibling;
-    const vendored = resolve(__dirname, 'vendor', 'hivemind.cjs');
-    if (existsSync(vendored)) return vendored;
-    try {
-      const res = await fetch(CLIENT_URL);
-      if (!res.ok) return null;
-      const body = await res.text();
-      mkdirSync(resolve(__dirname, 'vendor'), { recursive: true });
-      writeFileSync(vendored, body);
-      return vendored;
-    } catch {
-      return null;
-    }
+    return await resolveHivemindJs();
+  } catch (err) {
+    if (err instanceof HiveMindJsMismatch) throw err;
+    return null;
   }
 }
 
-const hmPath = await resolveHivemindJs();
+const hmPath = await resolveOrNull();
 
 test('binary audio frame round-trips through the HiveMind-js WIRE-1 codec', { skip: !hmPath ? 'HiveMind-js not found (set HIVEMIND_JS_PATH)' : false }, async () => {
   const hm = require(hmPath);

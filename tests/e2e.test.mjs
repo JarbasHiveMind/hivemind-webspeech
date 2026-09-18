@@ -24,9 +24,9 @@ import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { CLIENT_URL } from './hivemind_js_pin.mjs';
+import { resolveHivemindJs } from './hivemind_js_pin.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -34,35 +34,10 @@ const require = createRequire(import.meta.url);
 // `ws` is required to run hivemind-js outside a browser.
 globalThis.WebSocket = require('ws');
 
-// hivemind-js is not published to npm; the README quickstart and CI both rely
-// on this falling back to a fetched copy so a plain `npm install && npm test`
-// works without a sibling checkout. CLIENT_URL is the pin src/index.html
-// ships, read from the page itself.
-
-async function resolveHivemindJs() {
-    if (process.env.HIVEMIND_JS_PATH) return resolve(process.env.HIVEMIND_JS_PATH);
-    try {
-        return require.resolve('hivemind-js');
-    } catch {
-        // Fallback: sibling checkout in the workspace.
-        const sibling = resolve(
-            __dirname, '..', '..', 'HiveMind-js', 'static', 'js', 'hivemind.js');
-        if (existsSync(sibling)) return sibling;
-        const vendored = resolve(__dirname, 'vendor', 'hivemind.cjs');
-        if (existsSync(vendored)) return vendored;
-        console.log(`[*] No local client found; fetching ${CLIENT_URL}`);
-        const res = await fetch(CLIENT_URL);
-        if (!res.ok) {
-            throw new Error(
-                `hivemind-js not found and fetch failed: HTTP ${res.status}. Set HIVEMIND_JS_PATH.`);
-        }
-        const body = await res.text();
-        const outDir = resolve(__dirname, 'vendor');
-        mkdirSync(outDir, { recursive: true });
-        writeFileSync(vendored, body);
-        return vendored;
-    }
-}
+// hivemind-js is not published to npm. resolveHivemindJs in
+// hivemind_js_pin.mjs finds the file and checks its sha384 against the
+// integrity attribute src/index.html carries, so this suite drives the build
+// the page loads, or fails and says which file differs.
 
 function resolvePython() {
     if (process.env.E2E_PYTHON) return process.env.E2E_PYTHON;
