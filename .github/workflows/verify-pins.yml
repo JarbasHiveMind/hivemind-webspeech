@@ -1,0 +1,23 @@
+name: Verify pins
+
+# scripts/verify_pins.mjs fetches every pinned CDN asset the page loads and
+# recomputes its sha384. It stays out of `npm test`, which must run offline,
+# so this job is the scheduled caller. A mismatch here means the CDN serves
+# different bytes than src/index.html carries, and the browser will refuse
+# the script.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  verify-pins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm run verify:pins
