@@ -127,3 +127,54 @@ test('the microphone starts on onHiveConnected and a send failure is visible', a
   assert.equal(mic.listening, false);
   assert.deepEqual(alerts, []);
 });
+
+// HiveMind-js raises onHiveError from four places, and two of them fire while
+// the session is UP: a socket error, and any exception thrown by a frame
+// handler or by one of the page's own hooks. Neither ends the session. The
+// page holds the error only to explain the NEXT close, so holding one raised
+// while connected put an unrelated message on the status line at a close it
+// had nothing to do with.
+test('an error raised while connected does not become the disconnect reason', async () => {
+  const { els, conn } = await loadPage({ micNew: async () => fakeMic({}) });
+  await window.onConnect();
+
+  conn.onHiveConnected();
+  await flush();
+  await flush();
+
+  // something throws inside a hook; the socket stays open
+  conn.onHiveError(new Error("Cannot read properties of undefined (reading 'utterance')"));
+  assert.match(els.status.textContent, /HiveMind error: Cannot read properties/);
+
+  // and then the session ends for an unrelated reason
+  conn.onHiveDisconnected();
+  assert.equal(els.status.textContent, 'HiveMind connection lost.',
+    'a close must not inherit an error the session survived');
+});
+
+test('a refusal before the handshake still names itself at the close', async () => {
+  const { els, conn } = await loadPage({ micNew: async () => fakeMic({}) });
+  await window.onConnect();
+
+  // no onHiveConnected: this is the pre-handshake close HiveMind-js reports
+  conn.onHiveError(new Error(
+    'HiveMind connection refused before handshake completed (close code 4001): Invalid API key'));
+  conn.onHiveDisconnected();
+
+  assert.match(els.status.textContent, /close code 4001.*Invalid API key/,
+    'the refusal must reach the status line');
+});
+
+test('a second connect starts without the previous refusal', async () => {
+  const { els, conn } = await loadPage({ micNew: async () => fakeMic({}) });
+  await window.onConnect();
+  conn.onHiveError(new Error('refused: first attempt'));
+
+  // the user presses CONNECT again, and this time it closes cleanly
+  await window.onConnect();
+  conn.onHiveConnected();
+  await flush();
+  conn.onHiveDisconnected();
+
+  assert.equal(els.status.textContent, 'HiveMind connection lost.');
+});

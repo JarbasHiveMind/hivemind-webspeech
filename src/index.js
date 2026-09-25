@@ -70,6 +70,7 @@ function logLine(text) {
 const hivemind_connection = new JarbasHiveMind();
 
 hivemind_connection.onHiveConnected = function () {
+  hiveConnected = true;
   setStatus('Connected to HiveMind.');
   // The microphone starts only after the handshake completes, so no utterance
   // is captured before there is a session to send it on.
@@ -84,20 +85,40 @@ hivemind_connection.onMycroftSpeak = function (mycroft_message) {
   }
 };
 
+// The close frame's code and reason reach the page ONLY through onHiveError.
+// HiveMind-js raises it just before onHiveDisconnected for a close that
+// arrives before the handshake completes, and onHiveDisconnected itself takes
+// no argument, so without holding that error the page shows "connection lost"
+// for a refused key and for a dropped cable alike.
+//
+// It is held ONLY while the page is not connected. HiveMind-js raises
+// onHiveError from four places and two of them fire while the session is up:
+// a socket error, and any exception thrown by a frame handler or by one of
+// these hooks. An error from those does NOT end the session, so holding it
+// would put an unrelated message on the status line at the NEXT close,
+// whatever ended it. Cleared on consumption and on a new connect as well.
+let lastHiveError = null;
+let hiveConnected = false;
+
 hivemind_connection.onHiveDisconnected = function () {
-  setStatus('HiveMind connection lost.');
+  const why = lastHiveError;
+  lastHiveError = null;
+  hiveConnected = false;
+  setStatus(why ? errorText(why) : 'HiveMind connection lost.');
   if (myvad && myvad.listening) {
     myvad.pause();
     setToggleState(false);
   }
 };
 
-// A close code 1008 (Policy Violation) means the hub rejected the
-// credentials/handshake — terminal, not a transient drop. The client does not
-// auto-retry (connect() only fires once, from page load), but without this the
-// user only sees the generic "connection lost" alert with no indication why.
+// A hub that refuses the credentials closes the socket, and the client does
+// not auto-retry (connect() only fires once, from page load). Without this the
+// user sees the generic "connection lost" alert with no indication why. The
+// close carries a code and a reason: measured against hivemind-core, a bad
+// access key gives code 4001 and "Invalid API key".
 hivemind_connection.onHiveError = function (error) {
   console.error('HiveMind error:', error);
+  if (!hiveConnected) lastHiveError = error;
   const text = 'HiveMind error: ' + errorText(error);
   logLine(text);
   setStatus(text);
@@ -237,6 +258,8 @@ window.onConnect = async () => {
   if (serverKey) options.serverNoiseKey = serverKey;
 
   setStatus('Connecting to HiveMind…');
+  lastHiveError = null;
+  hiveConnected = false;
   try {
     hivemind_connection.connect(ip, port, user, key, password, options);
   } catch (e) {
