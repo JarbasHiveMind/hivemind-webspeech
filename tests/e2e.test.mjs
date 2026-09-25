@@ -65,6 +65,12 @@ test('V1 client handshake + encrypted utterance reaches a real hub', async (t) =
     // surface it if the test fails.
     let hubStderr = '';
     hub.stderr.on('data', (chunk) => { hubStderr += chunk.toString(); });
+    // The hub logs a refused key to stderr as a WARNING, and it closes the
+    // socket with code 4001 and the reason "Invalid API key". Buffer stdout as
+    // well: it carries the HUB_URL line and the hub's INFO log, and a failure
+    // before the hub ever writes to stderr leaves that block empty.
+    let hubStdout = '';
+    hub.stdout.on('data', (chunk) => { hubStdout += chunk.toString(); });
 
     // The hub blocks reading its own stdin until told to stop (see
     // loopback_hub.py), so every exit from the spawn on — pass or throw, and
@@ -101,10 +107,17 @@ test('V1 client handshake + encrypted utterance reaches a real hub', async (t) =
             await new Promise((resolveConn, rejectConn) => {
                 const timer = setTimeout(
                     () => rejectConn(new Error('handshake timeout')), 15000);
+                // HiveMind-js reads the close frame and raises onHiveError with
+                // the close code and reason, then calls onHiveDisconnected with
+                // no argument. Holding that error is the only way the test can
+                // say WHY the hub closed.
+                let closeError = null;
+                client.onHiveError = (err) => { closeError = err; };
                 client.onHiveConnected = () => { clearTimeout(timer); resolveConn(); };
                 client.onHiveDisconnected = () => {
                     clearTimeout(timer);
-                    rejectConn(new Error('disconnected during handshake'));
+                    rejectConn(new Error('disconnected during handshake' +
+                        (closeError ? ': ' + closeError.message : '')));
                 };
                 client.connect(host, port, 'webspeech-sat', SAT_KEY, SAT_PASSWORD);
             });
@@ -131,8 +144,10 @@ test('V1 client handshake + encrypted utterance reaches a real hub', async (t) =
     } catch (err) {
         // Most failures are thrown on the client side ('disconnected during
         // handshake', 'hub did not print HUB_URL in time') and say nothing
-        // about why the hub refused. Print the hub's log for every failure.
+        // about why the hub refused. Print both of the hub's streams for every
+        // failure. The close code and reason travel with the thrown error.
         console.error(`--- hub stderr ---\n${hubStderr || '(empty)'}\n--- end hub stderr ---`);
+        console.error(`--- hub stdout ---\n${hubStdout || '(empty)'}\n--- end hub stdout ---`);
         throw err;
     } finally {
         if (hub.exitCode === null && hub.signalCode === null) hub.kill('SIGKILL');
