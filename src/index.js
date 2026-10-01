@@ -310,20 +310,30 @@ async function handleUtterance(arr) {
     return;
   }
 
+  // The WAV is for the local <audio> preview only. A browser can not play
+  // headerless samples, so the preview keeps its container and the wire does
+  // not get one.
   const wavBuffer = vad.utils.encodeWAV(arr);
-  const base64 = vad.utils.arrayBufferToBase64(wavBuffer);
-  const url = `data:audio/wav;base64,${base64}`;
-  document.getElementById('audio-list').prepend(addAudio(url));
+  const previewUrl = `data:audio/wav;base64,${vad.utils.arrayBufferToBase64(wavBuffer)}`;
+  document.getElementById('audio-list').prepend(addAudio(previewUrl));
+
+  // Both transports send the same bytes: 16-bit little-endian PCM at 16 kHz,
+  // headerless. HIVEMIND-AUDIO-1 §2 says the audio inside the STT tags
+  // "carries uncompressed PCM samples", and hivemind-core's b64 handler
+  // builds an AudioData from the field with the rate and the width it is
+  // given, so a RIFF header there is transcribed as audio: a click in front
+  // of the utterance. This branch sent encodeWAV output until the panel
+  // answered `hivemind-b64-stt-audio-pcm-or-wav` with `pcm`.
+  const pcm = floatTo16BitPCM(arr);
 
   try {
     if (config.transport === 'binary' && canSendBinary(hivemind_connection)) {
-      const pcm = floatTo16BitPCM(arr);
       await sendAudioBinary(hivemind_connection, pcm, { sample_rate: 16000, sample_width: 2 });
     } else {
       if (config.transport === 'binary') {
         console.warn('binary transport not negotiated; using base64');
       }
-      await hivemind_connection.sendAudioB64(base64);
+      await hivemind_connection.sendAudioB64(vad.utils.arrayBufferToBase64(pcm.buffer));
     }
   } catch (e) {
     console.error('failed to send audio:', e);
