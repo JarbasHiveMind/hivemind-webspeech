@@ -7,8 +7,9 @@
 //   wakeWord  — 'off'            : every VAD-segmented utterance is streamed
 //               'precise-onnx-js': capture is gated behind an in-browser wake
 //                                  word; audio is only streamed once it fires
-//   transport — 'base64'         : utterances are sent as base64 WAV in a
-//                                  recognizer_loop:b64_audio bus message
+//   transport — 'base64'         : utterances are sent as base64 headerless
+//                                  PCM in a recognizer_loop:b64_audio bus
+//                                  message (HIVEMIND-AUDIO-1 §2)
 //               'binary'         : utterances are sent as raw-PCM WIRE-1 binary
 //                                  frames (STT_AUDIO_HANDLE), smaller on the wire
 //   tts       — 'server-text'    : the spoken reply is shown as text
