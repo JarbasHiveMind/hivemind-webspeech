@@ -100,7 +100,7 @@ You are now talking to your hive from the browser.
    handshake to derive an AES-GCM session key from your access key and
    password (via [HiveMind-js](https://github.com/JarbasHiveMind/HiveMind-js)).
 2. The browser ran VAD on your microphone and isolated one utterance.
-3. The utterance was encoded to WAV, base64-encoded, and sent as a
+3. The utterance was converted to headerless 16-bit PCM, base64-encoded, and sent as a
    `recognizer_loop:b64_audio` bus message.
 4. The hub ran STT, then intent, then skill, then TTS, and replied. The page
    rendered the spoken text.

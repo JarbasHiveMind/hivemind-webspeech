@@ -11,7 +11,7 @@ traces what happens on the wire.
 |---|---|
 | Microphone capture | Browser |
 | Voice activity detection (VAD) | Browser (Silero model via `onnxruntime-web`) |
-| WAV encoding + base64 | Browser |
+| PCM conversion + base64 | Browser |
 | Transport (encrypted WebSocket) | Browser ↔ Hub (HiveMind-js) |
 | Speech-to-text (STT) | Hub |
 | Intent matching + skills | Hub (OVOS) |
@@ -32,7 +32,7 @@ The page (`src/index.html`) loads its runtime dependencies from CDNs:
   native Web Crypto, so no separate crypto shims are needed.
 - **`onnxruntime-web`**: runs the VAD neural model in the browser.
 - **`@ricky0123/vad-web`**: the VAD wrapper. It handles microphone access, the
-  Silero model, and `onSpeechStart` / `onSpeechEnd` callbacks, plus WAV/base64
+  Silero model, and `onSpeechStart` / `onSpeechEnd` callbacks, plus PCM/base64
   utilities.
 - **Bulma**: CSS only.
 
@@ -73,13 +73,20 @@ running, every detected utterance is sent.
 On speech end, the samples are encoded and serialized:
 
 ```js
-const wavBuffer = vad.utils.encodeWAV(samples)
-const base64    = vad.utils.arrayBufferToBase64(wavBuffer)
+const pcm    = floatTo16BitPCM(samples)
+const base64 = vad.utils.arrayBufferToBase64(pcm.buffer)
 ```
 
-The whole utterance is encoded as a single WAV and base64 string. There is no
-streaming or chunking. The captured audio is also added to the on-page list
-with a playback control, so you can hear exactly what was sent.
+The whole utterance goes as a single base64 string. The bytes are headerless
+16-bit little-endian PCM at 16 kHz: HIVEMIND-AUDIO-1 §2 says the STT audio
+"carries **uncompressed PCM** samples", and the receiver builds its audio
+object from the field with the rate and the width it is given, so a RIFF header
+in there is transcribed as audio — a click in front of the utterance. There is
+no streaming or chunking.
+
+A WAV is built as well, from the same samples, for the on-page playback control
+only: a browser can not play bare samples. The container never reaches the
+wire.
 
 ### 4. Send
 
@@ -91,7 +98,7 @@ The base64 audio is wrapped in an OVOS bus message and sent inside a HiveMind
   msg_type: "bus",
   payload: {
     type: "recognizer_loop:b64_audio",
-    data: { audio: <base64-wav> },
+    data: { audio: <base64 headerless 16-bit PCM> },
     context: {
       source: "javascript",
       destination: "HiveMind",
@@ -100,6 +107,14 @@ The base64 audio is wrapped in an OVOS bus message and sent inside a HiveMind
   }
 }
 ```
+
+The message carries the audio field and nothing that describes it: the V1
+client's `sendAudioB64(base64)` takes the string alone. HIVEMIND-AUDIO-1 §2
+covers that case — a receiver "**MUST** fall back to the defaults" when the
+metadata is absent, and the defaults are signed 16-bit PCM, 16000 Hz, mono,
+which is exactly what this page sends. The `binary` transport does state
+`sample_rate` and `sample_width`, because a WIRE-1 binary frame has a metadata
+block to put them in.
 
 This whole `bus` envelope is AES-GCM-encrypted by HiveMind-js (using the
 session key derived during the handshake) before it leaves the browser. What

@@ -94,7 +94,7 @@ untouched page acts exactly as the minimal client. Nothing regresses.
 | Option | Default | Alternative | What the alternative does |
 |---|---|---|---|
 | **Wake word** | `off` | `precise-onnx-js` | Runs a [Precise](https://github.com/MycroftAI/mycroft-precise) `.onnx` wake word in the browser via [precise-onnx-js](https://github.com/TigreGotico/precise-onnx-js) and gates capture. Audio is streamed only after the wake word fires. |
-| **Audio transport** | `base64` | `binary` | Sends each utterance as a WIRE-1 `STT_AUDIO_HANDLE` raw-PCM binary frame instead of a base64 WAV bus message, which is smaller and faster on the wire. Falls back to `base64` automatically when the session cannot carry binary frames. |
+| **Audio transport** | `base64` | `binary` | Sends each utterance as a WIRE-1 `STT_AUDIO_HANDLE` raw-PCM binary frame instead of a base64 bus message, which is smaller and faster on the wire. Both carry the same headerless 16 kHz 16-bit PCM. Falls back to `base64` automatically when the session cannot carry binary frames. |
 | **Text to speech** | `server-text` | `phoonnx-js` | Synthesizes the spoken reply in the browser with [phoonnx.js](https://github.com/TigreGotico/phoonnx.js) and plays it, in addition to showing the text. A voice selector picks the model. |
 
 The wake-word and TTS libraries load only when their option is enabled, so the
@@ -230,7 +230,10 @@ see [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml).
    credentials over an encrypted WebSocket.
 2. `@ricky0123/vad-web` runs the Silero VAD model in the browser (via
    `onnxruntime-web`) to detect when you start and stop speaking.
-3. On speech end, the captured samples are encoded to a WAV buffer and base64.
+3. On speech end, the captured samples are converted to 16-bit PCM and base64.
+   The payload is headerless: the STT field carries uncompressed samples, never
+   a container (HIVEMIND-AUDIO-1 §2). A WAV is built as well, for the local
+   `<audio>` preview only, because a browser can not play bare samples.
 4. The base64 audio is wrapped in a `recognizer_loop:b64_audio` bus message and
    sent to hivemind-core.
 5. hivemind-core runs STT, then intent, then skill, then TTS, and replies. The

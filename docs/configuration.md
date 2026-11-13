@@ -31,7 +31,7 @@ saved settings behaves exactly as the minimal client does.
 | Option | Values | Default | Effect |
 |---|---|---|---|
 | **Wake word** | `off`, `precise-onnx-js` | `off` | `off` streams every VAD-segmented utterance. `precise-onnx-js` loads a [Precise](https://github.com/MycroftAI/mycroft-precise) `.onnx` model in the browser and gates capture. Nothing is streamed until the wake word fires. The following utterance is then sent. |
-| **Audio transport** | `base64`, `binary` | `base64` | `base64` sends each utterance as a base64 WAV `recognizer_loop:b64_audio` bus message. `binary` sends it as a WIRE-1 `STT_AUDIO_HANDLE` raw-PCM binary frame instead. This is smaller on the wire, with no base64 inflation. |
+| **Audio transport** | `base64`, `binary` | `base64` | `base64` sends each utterance as a base64 `recognizer_loop:b64_audio` bus message. `binary` sends it as a WIRE-1 `STT_AUDIO_HANDLE` raw-PCM binary frame instead. This is smaller on the wire, with no base64 inflation. Both carry the same bytes: headerless 16-bit little-endian PCM at 16 kHz, never a container (HIVEMIND-AUDIO-1 §2). |
 | **Text to speech** | `server-text`, `phoonnx-js` | `server-text` | `server-text` renders the spoken reply as text. `phoonnx-js` also synthesizes the reply text in the browser with [phoonnx.js](https://github.com/TigreGotico/phoonnx.js) and plays it. |
 
 Two text fields tune the non-default modes:

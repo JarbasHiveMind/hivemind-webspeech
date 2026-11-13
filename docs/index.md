@@ -34,7 +34,7 @@ the same division of labour, a web page instead of a Python process, built on
 |---|---|
 | [Getting started](getting-started.md) | Pair, allow the audio message, open the page, speak |
 | [Configuration](configuration.md) | Credential fields, ports, the TLS / mixed-content rule, hub requirements |
-| [Audio pipeline](architecture.md) | How mic → VAD → WAV → base64 → bus → reply works on the wire |
+| [Audio pipeline](architecture.md) | How mic → VAD → PCM → base64 → bus → reply works on the wire |
 | [Troubleshooting](troubleshooting.md) | Connection, TLS, audio, and VAD problems |
 
 ## Quick reference
